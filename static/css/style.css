@@ -1,4 +1,4 @@
-/* ===== MODERN FINANCE UI – GLASS & BENTO (MOBILE FIX) ===== */
+/* ===== MODERN FINANCE UI – GLASS & BENTO (NON‑OVERLAY MOBILE MENU) ===== */
 :root {
     --bg-base: #f5f7fa;
     --glass-bg: rgba(255, 255, 255, 0.7);
@@ -62,9 +62,8 @@ body {
     border-radius: var(--border-radius-xl);
     box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
-    position: sticky;
-    top: 8px;
-    z-index: 100;
+    position: relative;
+    z-index: 50;
 }
 
 .nav-brand a {
@@ -81,6 +80,8 @@ body {
     gap: 6px;
     align-items: center;
     flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
 }
 
 .nav-menu li { margin: 0; }
@@ -108,11 +109,58 @@ body {
 
 .logout-btn { color: var(--danger) !important; }
 
-/* Consolidated Balance Card – Visible on Mobile */
-.balance-bento {
-    margin-bottom: 20px;
-    margin-top: 0;
+/* Hamburger Menu – Non‑Overlay */
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 26px;
+    height: 22px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
 }
+.hamburger .bar {
+    width: 26px;
+    height: 3px;
+    background-color: var(--text-primary);
+    border-radius: 10px;
+    transition: var(--transition);
+}
+
+/* Mobile Navigation – Pushes Content Down */
+@media (max-width: 768px) {
+    .navbar {
+        flex-wrap: wrap;
+    }
+    .nav-menu {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border-radius: var(--border-radius-lg);
+        padding: 16px;
+        margin-top: 12px;
+        position: static;        /* Not fixed/absolute – pushes content */
+        box-shadow: none;
+    }
+    .nav-menu.active {
+        display: flex;
+    }
+    .hamburger {
+        display: flex;
+    }
+}
+
+@media (min-width: 769px) {
+    .hamburger { display: none; }
+    .nav-menu { display: flex !important; }
+}
+
+/* Consolidated Balance Card – Visible on Mobile */
+.balance-bento { margin-bottom: 20px; }
 .balance-card {
     padding: 20px 18px;
     display: flex;
@@ -145,7 +193,7 @@ body {
 .item-value.positive { color: var(--success); }
 .item-value.negative { color: var(--danger); }
 
-/* Insights Grid – More Attractive Spacing */
+/* Insights Grid */
 .insights-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -153,9 +201,7 @@ body {
     margin-bottom: 20px;
 }
 @media (min-width: 640px) {
-    .insights-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
+    .insights-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .insight-card {
     padding: 18px;
@@ -177,7 +223,7 @@ body {
 .badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
 .badge.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
 
-/* Dashboard Header – Clean */
+/* Dashboard Header */
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -188,7 +234,7 @@ body {
 .dashboard-header h2 { font-size: 1.4rem; }
 .month-navigation { display: flex; gap: 8px; }
 
-/* Charts Container – Stack on Mobile */
+/* Charts Container */
 .charts-container {
     display: grid;
     grid-template-columns: 1fr;
@@ -203,31 +249,45 @@ body {
 .chart-wrapper { max-height: 180px; }
 .chart-insight { text-align: center; margin-top: 10px; font-size: 0.85rem; color: var(--text-secondary); }
 
-/* Modern Table – Scrollable & Clean */
-.expense-section { padding: 18px; margin-bottom: 20px; }
+/* ===== TABLE STYLES – COMPLETELY ISOLATED ===== */
+.income-list,
+.bills-list,
+.recurring-list,
+.expense-section {
+    padding: 18px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
 }
-.table-responsive { overflow-x: auto; margin: 0 -6px; padding: 0 6px; }
+
 .modern-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.9rem;
-    min-width: 500px;
+    min-width: 600px;
+}
+.modern-table th,
+.modern-table td {
+    padding: 14px 12px !important;
+    border-bottom: 1px solid var(--glass-border);
+    vertical-align: middle;
+    white-space: nowrap;
+    text-align: left;
 }
 .modern-table th {
-    text-align: left;
-    padding: 10px 6px;
     color: var(--text-secondary);
     font-weight: 500;
-    border-bottom: 1px solid var(--glass-border);
 }
-.modern-table td {
-    padding: 14px 6px;
-    border-bottom: 1px solid var(--glass-border);
+.modern-table td:first-child {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 200px;
 }
 .amount-cell { font-weight: 600; }
 .category-badge {
@@ -252,6 +312,15 @@ body {
 }
 .icon-btn:hover { opacity: 1; transform: scale(1.1); }
 .inline-form { display: inline; }
+
+/* Status badges */
+.badge.paid { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+.badge.unpaid { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+.badge.active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+.badge.inactive { background: rgba(100, 116, 139, 0.15); color: var(--text-secondary); }
+tr.inactive { opacity: 0.6; }
+tr.due-soon-row { background: rgba(245, 158, 11, 0.08); }
+.icon-btn.btn-success { color: var(--success); }
 
 /* Buttons */
 .btn {
@@ -281,118 +350,8 @@ body {
 .pagination { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
 .empty-state { text-align: center; padding: 30px; color: var(--text-secondary); }
 
-/* Hamburger Menu */
-.hamburger {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    width: 26px;
-    height: 22px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-}
-.hamburger .bar {
-    width: 26px;
-    height: 3px;
-    background-color: var(--text-primary);
-    border-radius: 10px;
-    transition: var(--transition);
-}
-@media (min-width: 769px) {
-    .hamburger { display: none; }
-}
-@media (max-width: 768px) {
-    .nav-menu {
-        display: none;
-        flex-direction: column;
-        width: 100%;
-        background: var(--glass-bg);
-        backdrop-filter: blur(12px);
-        border-radius: var(--border-radius-lg);
-        padding: 16px;
-        margin-top: 12px;
-        position: absolute;
-        top: 60px;
-        left: 0;
-        right: 0;
-        z-index: 99;
-    }
-    .nav-menu.active { display: flex; }
-    .navbar { flex-wrap: wrap; }
-}
-
-/* Fix notification dropdown on mobile */
+/* Fix notification dropdown */
 .notification-dropdown {
     max-width: 90vw;
     right: 0;
-}
-/* ===== TABLE FIXES – CLEAR COLUMN SEPARATION ===== */
-.modern-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: auto;
-    min-width: 600px;
-}
-
-.modern-table th,
-.modern-table td {
-    padding: 14px 12px !important;
-    border-bottom: 1px solid var(--glass-border);
-    vertical-align: middle;
-    white-space: nowrap;
-}
-
-.modern-table td {
-    white-space: nowrap;
-}
-
-/* Allow title to wrap if needed */
-.modern-table td:first-child {
-    white-space: normal;
-    word-break: break-word;
-    max-width: 200px;
-}
-
-/* Actions column – keep buttons inline */
-.actions-cell {
-    white-space: nowrap;
-}
-
-.actions-cell .icon-btn {
-    display: inline-block;
-    margin: 0 4px;
-}
-
-/* Fallback header hidden when real thead exists */
-table:has(thead) tbody thead.fallback-thead {
-    display: none !important;
-}
-/* Status badges for bills & recurring */
-.badge.paid {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--success);
-}
-.badge.unpaid {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--danger);
-}
-.badge.active {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--success);
-}
-.badge.inactive {
-    background: rgba(100, 116, 139, 0.15);
-    color: var(--text-secondary);
-}
-tr.inactive {
-    opacity: 0.6;
-}
-tr.due-soon-row {
-    background: rgba(245, 158, 11, 0.08);
-}
-.icon-btn.btn-success {
-    color: var(--success);
 }
