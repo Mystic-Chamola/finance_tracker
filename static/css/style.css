@@ -1,6 +1,6 @@
 /* ============================================================
-   FINANCE TRACKER – PREMIUM UI STYLES
-   Mobile‑First, Horizontal Scroll When Needed, All Fixes
+   FINANCE TRACKER – FINAL PREMIUM UI
+   Mobile‑First, Smart Overflow, All Fixes Included
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -65,8 +65,8 @@ body.dark-mode {
 html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
-    overflow-x: auto;
     width: 100%;
+    overflow-x: hidden;
 }
 
 body {
@@ -81,9 +81,9 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     padding-top: 72px;
-    overflow-x: auto;
     width: 100%;
     max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* ----- Typography ----- */
@@ -129,8 +129,6 @@ a:hover {
     max-width: 100vw;
     z-index: 1000;
     border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .nav-brand a {
@@ -235,15 +233,13 @@ a:hover {
     transform: rotate(-45deg) translate(7px, -6px);
 }
 
-/* ----- Container – allows horizontal scroll if needed ----- */
+/* ----- Container – Smart Overflow ----- */
 .container {
     max-width: 1280px;
     margin: 0 auto;
     padding: 1.5rem 1rem 2rem;
     flex: 1;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 640px) {
@@ -261,8 +257,6 @@ a:hover {
     margin-bottom: 2rem;
     flex-wrap: wrap;
     gap: 1rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .month-navigation {
@@ -275,8 +269,6 @@ a:hover {
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border);
     flex-wrap: wrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .current-month {
@@ -307,7 +299,6 @@ a:hover {
     backdrop-filter: blur(4px);
     word-break: break-word;
     width: 100%;
-    overflow: visible !important;
 }
 
 .card:hover {
@@ -361,8 +352,6 @@ a:hover {
     margin-bottom: 2rem;
     border: 1px solid var(--border);
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .widget-header {
@@ -386,7 +375,6 @@ a:hover {
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--border);
     transition: var(--transition);
-    overflow: visible !important;
 }
 
 .goal-card.completed {
@@ -422,7 +410,6 @@ a:hover {
     padding: 1rem;
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--border);
-    overflow: visible !important;
 }
 
 /* ----- Analytics & Charts ----- */
@@ -434,8 +421,6 @@ a:hover {
     margin-bottom: 2rem;
     border: 1px solid var(--border);
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .chart-container {
@@ -450,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ----- Tables – always scrollable horizontally if needed ----- */
+/* ----- Tables – Only scroll when necessary ----- */
 .expense-list,
 .income-list,
 .bills-list,
@@ -461,17 +446,16 @@ a:hover {
     box-shadow: var(--card-shadow);
     padding: 1.5rem;
     border: 1px solid var(--border);
+    width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    width: 100%;
 }
 
 table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    display: table;
+    min-width: 600px; /* Ensures horizontal scroll on narrow screens */
 }
 
 th {
@@ -577,8 +561,6 @@ tr.category-other td:first-child { border-left: 4px solid #C9CBCF; }
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border);
     width: calc(100% - 2rem);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 input, select, textarea {
@@ -615,8 +597,8 @@ input:focus, select:focus, textarea:focus {
     box-shadow: var(--card-shadow-hover);
     display: none;
     z-index: 1000;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    max-height: 400px;
 }
 
 .notification-dropdown.show {
@@ -650,8 +632,6 @@ input:focus, select:focus, textarea:focus {
     flex-wrap: wrap;
     border: 1px solid var(--border);
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .avatar-large {
@@ -737,10 +717,6 @@ footer {
         padding: 1rem;
     }
 
-    table {
-        min-width: 600px;
-    }
-
     th, td {
         padding: 0.75rem 0.5rem;
     }
@@ -789,45 +765,18 @@ footer {
     }
 }
 
-/* ===== CRITICAL FIXES (Visibility, Alignment, Overflow) ===== */
-
-/* 1. Prevent content clipping & ensure visibility */
+/* ===== FINAL FIXES ===== */
+/* Ensure all text is visible and cards align properly */
 .card,
 .goal-card,
 .category-budget-card,
 .bill-item,
 .notification-item,
-.notification-item-full,
 .analytics-section,
-.expense-list,
-.income-list,
-.bills-list,
-.recurring-list,
 .goals-widget,
 .profile-card,
-.settings-card,
-.contributions-section,
-.report-period,
-.form-container,
-.auth-container,
-.confirm-delete {
-    overflow: visible !important;
-    min-height: auto !important;
-    height: auto !important;
-    max-height: none !important;
-}
-
-/* 2. Align card content to top (not centered) */
-.card,
-.goal-card,
-.category-budget-card,
-.bill-item,
-.notification-item,
-.notification-item-full,
-.analytics-section,
-.goals-widget .goal-card,
-.profile-card,
 .settings-card {
+    overflow: visible !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
@@ -835,101 +784,23 @@ footer {
     text-align: left !important;
 }
 
-/* Exception for summary cards (keep centered but top-aligned) */
 .summary-cards .card {
-    text-align: center !important;
     align-items: center !important;
-}
-
-.summary-cards .card h3,
-.summary-cards .card .amount {
     text-align: center !important;
 }
 
-/* 3. Reset table display to native (fixes header position) */
-table,
-thead,
-tbody,
-tfoot,
-tr,
-th,
-td {
+/* Reset table display to native */
+table, thead, tbody, tfoot, tr, th, td {
     display: revert !important;
-    flex: revert !important;
-    grid: revert !important;
 }
+thead { display: table-header-group !important; }
+tbody { display: table-row-group !important; }
+tr { display: table-row !important; }
+th, td { display: table-cell !important; }
 
-thead {
-    display: table-header-group !important;
-}
-
-tbody {
-    display: table-row-group !important;
-}
-
-tr {
-    display: table-row !important;
-}
-
-th {
-    display: table-cell !important;
-    font-weight: 600 !important;
-    text-align: left !important;
-    vertical-align: bottom !important;
-}
-
-td {
-    display: table-cell !important;
-    vertical-align: middle !important;
-}
-
-/* 4. Force all text to be visible */
-.card .amount,
-.goal-amounts .current,
-.goal-amounts .target,
-.bill-amount,
-td, th, p, span, h1, h2, h3, h4, h5, h6, a {
+/* Force text visibility */
+.amount, .goal-amounts, .bill-amount, td, th, p, span, h1, h2, h3, h4, h5, h6, a {
     color: var(--text-primary) !important;
     opacity: 1 !important;
     visibility: visible !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-}
-
-/* 5. Margin fixes for headings */
-.card h3,
-.goal-card h3,
-.category-budget-card .category-name,
-.bill-item .bill-title,
-.notification-item .notification-title {
-    margin-top: 0 !important;
-    margin-bottom: 0.75rem !important;
-    width: 100% !important;
-}
-
-/* 6. Ultimate overflow & scroll protection */
-img, video, canvas, svg, iframe, embed, object {
-    max-width: 100%;
-    height: auto;
-}
-
-.container,
-.expense-list,
-.income-list,
-.bills-list,
-.recurring-list,
-.contributions-section,
-.analytics-section,
-.goals-widget,
-.chart-container,
-.profile-card,
-.form-container,
-.auth-container,
-.report-period,
-.month-navigation,
-.dashboard-header,
-.widget-header,
-.page-header {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
 }
