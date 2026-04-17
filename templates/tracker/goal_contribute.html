@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="form-container">
+    <h2>Add Contribution to "{{ goal.title }}"</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Add Contribution</button>
+        <a href="{% url 'goal_detail' goal.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+    <p class="help-text">Enter amount in {{ user_currency }}. It will be converted to USD for storage.</p>
+</div>
+{% endblock %}

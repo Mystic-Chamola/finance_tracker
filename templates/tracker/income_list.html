@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="page-header">
+    <h1>Income</h1>
+    <a href="{% url 'income_add' %}" class="btn btn-primary">+ Add Income</a>
+</div>
+
+<div class="income-list">
+    {% if incomes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for income in incomes %}
+                <tr>
+                    <td>{{ income.title }}</td>
+                    <td>{{ income.amount|format_currency:user_currency }}</td>
+                    <td>{{ income.category }}</td>
+                    <td>{{ income.date|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'income_edit' income.id %}" class="btn btn-sm">Edit</a>
+                        <form action="{% url 'income_delete' income.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this income entry?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <p>💰 No income recorded yet.</p>
+            <a href="{% url 'income_add' %}" class="btn btn-primary">Add Your First Income</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

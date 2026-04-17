@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="form-container">
+    <h2>Edit Expense</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Update</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+    <p class="help-text">Amount shown in {{ user_currency }}. Editing will update the USD equivalent.</p>
+</div>
+{% endblock %}

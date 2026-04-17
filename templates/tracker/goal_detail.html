@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="goal-detail-header">
+    <h1>{{ goal.title }}</h1>
+    <div class="header-actions">
+        <a href="{% url 'goal_contribute' goal.id %}" class="btn btn-primary">Add Contribution</a>
+        <a href="{% url 'goal_edit' goal.id %}" class="btn btn-secondary">Edit</a>
+    </div>
+</div>
+
+<div class="goal-summary-card">
+    <div class="goal-progress-large">
+        <div class="progress-stats">
+            <span class="current-amount">{{ goal.current_amount|format_currency:user_currency }}</span>
+            <span class="target-amount">of {{ goal.target_amount|format_currency:user_currency }}</span>
+        </div>
+        <div class="progress-bar-container large">
+            <div class="progress-bar" style="width: {{ goal.progress_percentage }}%;"></div>
+        </div>
+        <div class="progress-details">
+            <span>{{ goal.progress_percentage|floatformat:0 }}% complete</span>
+            <span>Remaining: {{ goal.remaining|format_currency:user_currency }}</span>
+        </div>
+    </div>
+    {% if goal.deadline %}
+    <p class="deadline">📅 Deadline: {{ goal.deadline|date:"F j, Y" }}</p>
+    {% endif %}
+    {% if goal.is_completed %}
+    <div class="completion-badge">🎉 Goal Completed!</div>
+    {% endif %}
+</div>
+
+<div class="contributions-section">
+    <h2>Contribution History</h2>
+    {% if contributions %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contrib in contributions %}
+                <tr>
+                    <td>{{ contrib.date|date:"M d, Y" }}</td>
+                    <td>{{ contrib.amount|format_currency:user_currency }}</td>
+                    <td>{{ contrib.note|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No contributions yet.</p>
+    {% endif %}
+</div>
+
+<p><a href="{% url 'goal_list' %}">&larr; Back to Goals</a></p>
+{% endblock %}

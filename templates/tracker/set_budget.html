@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="form-container">
+    <h2>Set Monthly Budget</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Save Budget</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+    <p class="help-text">Enter your overall monthly limit in {{ user_currency }}.</p>
+</div>
+{% endblock %}

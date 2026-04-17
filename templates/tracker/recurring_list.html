@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="page-header">
+    <h1>Recurring Expenses</h1>
+    <a href="{% url 'recurring_add' %}" class="btn btn-primary">+ Add Recurring</a>
+</div>
+
+<div class="recurring-list">
+    {% if recurrings %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    <th>Interval</th>
+                    <th>Next Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rec in recurrings %}
+                <tr class="{% if not rec.is_active %}inactive{% endif %}">
+                    <td>{{ rec.title }}</td>
+                    <td>{{ rec.amount|format_currency:user_currency }}</td>
+                    <td>{{ rec.category }}</td>
+                    <td>{{ rec.get_interval_display }}</td>
+                    <td>{{ rec.next_due|date:"M d, Y" }}</td>
+                    <td>
+                        {% if rec.is_active %}
+                            <span class="badge active">Active</span>
+                        {% else %}
+                            <span class="badge inactive">Paused</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'recurring_edit' rec.id %}" class="btn btn-sm">Edit</a>
+                        <a href="{% url 'recurring_toggle' rec.id %}" class="btn btn-sm">
+                            {% if rec.is_active %}Pause{% else %}Resume{% endif %}
+                        </a>
+                        <form action="{% url 'recurring_delete' rec.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this recurring expense?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No recurring expenses set up. <a href="{% url 'recurring_add' %}">Add one</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}

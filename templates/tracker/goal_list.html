@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="page-header">
+    <h1>Savings Goals</h1>
+    <a href="{% url 'goal_add' %}" class="btn btn-primary">+ New Goal</a>
+</div>
+
+<div class="goals-list">
+    {% if goals %}
+        <div class="goals-grid full-width">
+            {% for goal in goals %}
+            <div class="goal-card {% if goal.is_completed %}completed{% endif %}">
+                <div class="goal-header">
+                    <h3>{{ goal.title }}</h3>
+                    {% if goal.is_completed %}
+                        <span class="badge completed">Completed</span>
+                    {% endif %}
+                </div>
+                <div class="goal-amounts">
+                    <span class="current">{{ goal.current_amount|format_currency:user_currency }}</span>
+                    <span class="separator">/</span>
+                    <span class="target">{{ goal.target_amount|format_currency:user_currency }}</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ goal.progress_percentage }}%;"></div>
+                </div>
+                <div class="goal-meta">
+                    <span>{{ goal.progress_percentage|floatformat:0 }}% complete</span>
+                    {% if goal.deadline %}
+                    <span>Deadline: {{ goal.deadline|date:"M d, Y" }}</span>
+                    {% endif %}
+                </div>
+                <div class="goal-actions">
+                    <a href="{% url 'goal_detail' goal.id %}" class="btn btn-sm">Details</a>
+                    <a href="{% url 'goal_contribute' goal.id %}" class="btn btn-sm btn-primary">Add Money</a>
+                    {% if not goal.is_completed %}
+                    <a href="{% url 'goal_edit' goal.id %}" class="btn btn-sm">Edit</a>
+                    {% endif %}
+                    <form action="{% url 'goal_delete' goal.id %}" method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this goal?')">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No savings goals yet. <a href="{% url 'goal_add' %}">Create one</a> to start tracking!</p>
+    {% endif %}
+</div>
+{% endblock %}

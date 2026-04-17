@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-header">
+    <h1>My Profile</h1>
+    <a href="{% url 'profile_edit' %}" class="btn btn-primary">Edit Profile</a>
+</div>
+
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="avatar-section">
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="{{ user.username }}" class="avatar-large">
+            {% else %}
+                <div class="avatar-placeholder">{{ user.username|slice:":1"|upper }}</div>
+            {% endif %}
+            <h2>{{ user.username }}</h2>
+        </div>
+        <div class="profile-details">
+            <div class="detail-row">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">{{ user.email }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Preferred Currency:</span>
+                <span class="detail-value">{{ profile.preferred_currency }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Member Since:</span>
+                <span class="detail-value">{{ user.date_joined|date:"F j, Y" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-sections">
+        <div class="settings-card">
+            <h3>🔐 Security</h3>
+            <a href="{% url 'change_password' %}" class="btn btn-secondary">Change Password</a>
+        </div>
+
+        <div class="settings-card danger-zone">
+            <h3>⚠️ Danger Zone</h3>
+            <p>Once you delete your account, there is no going back. Please be certain.</p>
+            <a href="{% url 'delete_account' %}" class="btn btn-danger">Delete Account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

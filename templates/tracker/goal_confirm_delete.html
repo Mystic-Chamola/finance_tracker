@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="confirm-delete">
+    <h2>Delete Savings Goal</h2>
+    <p>Are you sure you want to delete "{{ goal.title }}"?</p>
+    <p>This will also remove all contribution history for this goal.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'goal_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

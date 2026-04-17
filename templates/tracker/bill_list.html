@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block content %}
+<div class="page-header">
+    <h1>Bills & Reminders</h1>
+    <a href="{% url 'bill_add' %}" class="btn btn-primary">+ Add Bill</a>
+</div>
+
+<div class="bills-list full-width">
+    {% if bills %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Recurring</th>
+                    <th>Reminder</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr class="{% if bill.is_due_soon and not bill.is_paid %}due-soon-row{% endif %}">
+                    <td>{{ bill.title }}</td>
+                    <td>{{ bill.amount|format_currency:user_currency }}</td>
+                    <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                    <td>
+                        {% if bill.is_paid %}
+                            <span class="badge paid">Paid</span>
+                        {% else %}
+                            <span class="badge unpaid">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if bill.is_recurring %}
+                            {{ bill.get_recurring_interval_display }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ bill.reminder_days_before }} days before</td>
+                    <td>
+                        {% if not bill.is_paid %}
+                        <form action="{% url 'bill_mark_paid' bill.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">Mark Paid</button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'bill_edit' bill.id %}" class="btn btn-sm">Edit</a>
+                        <form action="{% url 'bill_delete' bill.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this bill?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No bills yet. <a href="{% url 'bill_add' %}">Add one</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}

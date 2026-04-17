@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="confirm-delete">
+    <h2>Delete Recurring Expense</h2>
+    <p>Are you sure you want to delete "{{ recurring.title }}"?</p>
+    <p>This will not delete any existing expenses already created from this recurring entry.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'recurring_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
