@@ -964,3 +964,50 @@ body.dark-mode .goal-amounts {
     margin-top: auto !important;
     width: 100% !important;
 }
+/* ===== Fix: Table headers at top (reset table display) ===== */
+table,
+thead,
+tbody,
+tfoot,
+tr,
+th,
+td {
+    display: revert !important;
+    flex: revert !important;
+    grid: revert !important;
+    text-align: revert !important;
+    vertical-align: middle !important;
+}
+
+thead {
+    display: table-header-group !important;
+}
+
+tbody {
+    display: table-row-group !important;
+}
+
+tr {
+    display: table-row !important;
+}
+
+th {
+    display: table-cell !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    vertical-align: bottom !important;
+}
+
+td {
+    display: table-cell !important;
+    vertical-align: middle !important;
+}
+
+/* Ensure table container doesn't become flex/grid */
+.expense-list,
+.income-list,
+.bills-list,
+.recurring-list,
+.contributions-section {
+    display: block !important;
+}
