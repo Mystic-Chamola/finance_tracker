@@ -1132,3 +1132,156 @@ input, select, textarea {
 html {
     scroll-behavior: smooth;
 }
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+
+/* Skip to main content link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--accent);
+    color: white;
+    padding: 8px 16px;
+    z-index: 9999;
+    text-decoration: none;
+    border-radius: 0 0 var(--border-radius-sm) 0;
+}
+.skip-link:focus {
+    top: 0;
+}
+
+/* Visually hidden (for screen readers only) */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Enhanced focus indicator for all interactive elements */
+*:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Remove default focus style for mouse users, keep for keyboard */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Ensure buttons have proper focus style */
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.nav-menu a:focus-visible,
+.theme-toggle:focus-visible,
+.notification-bell:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Color‑independent status indicators (add icons alongside color) */
+.badge.success::before {
+    content: "✓ ";
+    font-weight: bold;
+}
+.badge.danger::before {
+    content: "⚠ ";
+    font-weight: bold;
+}
+.badge.paid::before {
+    content: "✓ ";
+}
+.badge.unpaid::before {
+    content: "⏳ ";
+}
+.warning::before {
+    content: "⚠️ ";
+}
+.amount.negative::before {
+    content: "−";  /* minus sign for screen readers */
+}
+
+/* Improve chart accessibility (fallback descriptions) */
+.chart-wrapper {
+    position: relative;
+}
+.chart-fallback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+}
+
+/* Ensure sufficient color contrast in dark mode */
+body.dark-mode .badge.success,
+body.dark-mode .badge.paid {
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+body.dark-mode .badge.danger,
+body.dark-mode .badge.unpaid {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+}
+
+/* Make form labels more readable */
+label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Required field indicator */
+.required::after {
+    content: " *";
+    color: var(--danger);
+}
+/* Required field indicator */
+.required label:after,
+.required-indicator {
+    color: var(--danger);
+    font-weight: bold;
+}
+
+/* Focus state for form fields */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    border-color: transparent;
+}
+
+/* Error message styling */
+.has-error input,
+.has-error select,
+.has-error textarea {
+    border-color: var(--danger);
+}
+.error-message {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
+/* Screen reader only */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

@@ -7,17 +7,17 @@
 <div class="balance-bento">
     <div class="balance-card glass">
         <div class="balance-header">
-            <span class="balance-label">Net Worth</span>
-            <span class="balance-amount">{{ net_savings|format_currency:user_currency }}</span>
+            <h2 class="balance-label">Net Worth</h2>
+            <p class="balance-amount" aria-label="Current net worth">{{ net_savings|format_currency:user_currency }}</p>
         </div>
         <div class="balance-details">
             <div class="balance-item">
                 <span class="item-label">💰 Total Income</span>
-                <span class="item-value positive">{{ total_income|format_currency:user_currency }}</span>
+                <span class="item-value positive" aria-label="Total income">{{ total_income|format_currency:user_currency }}</span>
             </div>
             <div class="balance-item">
                 <span class="item-label">📉 Total Spent</span>
-                <span class="item-value negative">{{ total_spent|format_currency:user_currency }}</span>
+                <span class="item-value negative" aria-label="Total spent">{{ total_spent|format_currency:user_currency }}</span>
             </div>
         </div>
     </div>
@@ -26,9 +26,9 @@
 {# --- QUICK INSIGHTS / SPENDING ACTIVITY FEED --- #}
 <div class="insights-grid">
     <div class="insight-card glass">
-        <div class="insight-icon">📊</div>
+        <div class="insight-icon" aria-hidden="true">📊</div>
         <div class="insight-content">
-            <h4>Monthly Overview</h4>
+            <h3>Monthly Overview</h3>
             <p>You've spent <strong>{{ total_spent|format_currency:user_currency }}</strong> this month.</p>
             {% if over_budget %}
                 <span class="badge danger">Over budget</span>
@@ -38,9 +38,9 @@
         </div>
     </div>
     <div class="insight-card glass">
-        <div class="insight-icon">🎯</div>
+        <div class="insight-icon" aria-hidden="true">🎯</div>
         <div class="insight-content">
-            <h4>Top Category</h4>
+            <h3>Top Category</h3>
             {% if categories %}
                 <p><strong>{{ categories.0 }}</strong> leads with {{ amounts.0|format_currency:user_currency }}</p>
             {% else %}
@@ -49,9 +49,9 @@
         </div>
     </div>
     <div class="insight-card glass">
-        <div class="insight-icon">📅</div>
+        <div class="insight-icon" aria-hidden="true">📅</div>
         <div class="insight-content">
-            <h4>Upcoming Bills</h4>
+            <h3>Upcoming Bills</h3>
             <p>{{ upcoming_bills|length }} bill{{ upcoming_bills|length|pluralize }} due soon</p>
         </div>
     </div>
@@ -59,50 +59,63 @@
 
 {# --- MONTH NAVIGATION --- #}
 <div class="dashboard-header">
-    <h2>{{ current_month|date:"F Y" }}</h2>
-    <div class="month-navigation">
-        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}" class="btn btn-outline btn-sm">← Prev</a>
-        <a href="?year={{ next_month.year }}&month={{ next_month.month }}" class="btn btn-outline btn-sm">Next →</a>
-    </div>
+    <h2 id="current-month-heading">{{ current_month|date:"F Y" }}</h2>
+    <nav class="month-navigation" aria-label="Month navigation">
+        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-outline btn-sm" aria-label="Previous month">← Prev</a>
+        <a href="?year={{ next_month.year }}&month={{ next_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-outline btn-sm" aria-label="Next month">Next →</a>
+    </nav>
 </div>
 
-{# --- CHARTS (SIMPLIFIED) --- #}
+{# --- CHARTS (SIMPLIFIED, WITH ACCESSIBILITY) --- #}
 <div class="charts-container">
     <div class="chart-card glass">
-        <h3>Spending Trends</h3>
-        <div class="chart-wrapper">
-            <canvas id="spendingTrendChart"></canvas>
+        <h3 id="spending-trend-heading">Spending Trends</h3>
+        <div class="chart-wrapper" role="figure" aria-labelledby="spending-trend-heading">
+            <canvas id="spendingTrendChart" role="img" aria-label="Line chart showing monthly spending over the last 6 months"></canvas>
+            <div class="chart-fallback visually-hidden">
+                Spending trend data:
+                {% for label in month_labels %}
+                    {{ label }}: {{ monthly_totals|slice:forloop.counter0|first|default:0|format_currency:user_currency }}.
+                {% endfor %}
+            </div>
         </div>
-        <p class="chart-insight">
+        <p class="chart-insight" aria-live="polite">
             {% if monthly_totals|length > 1 %}
                 {% if monthly_totals.0 > monthly_totals.1 %}📈 Up{% else %}📉 Down{% endif %} from last month
             {% endif %}
         </p>
     </div>
     <div class="chart-card glass">
-        <h3>Categories</h3>
-        <div class="chart-wrapper">
-            <canvas id="categoryDonutChart"></canvas>
+        <h3 id="category-donut-heading">Categories</h3>
+        <div class="chart-wrapper" role="figure" aria-labelledby="category-donut-heading">
+            <canvas id="categoryDonutChart" role="img" aria-label="Donut chart showing spending by category"></canvas>
+            <div class="chart-fallback visually-hidden">
+                Category breakdown:
+                {% for category in categories %}
+                    {{ category }}: {{ amounts|slice:forloop.counter0|first|default:0|format_currency:user_currency }}.
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
 
 {# --- EXPENSE LIST WITH CATEGORY BUDGETS --- #}
-<div class="expense-section glass">
+<section class="expense-section glass" aria-labelledby="transactions-heading">
     <div class="section-header">
-        <h3>Recent Transactions</h3>
-        <a href="{% url 'export_csv' %}?year={{ current_month.year }}&month={{ current_month.month }}" class="btn btn-sm btn-outline">Export</a>
+        <h3 id="transactions-heading">Recent Transactions</h3>
+        <a href="{% url 'export_csv' %}?year={{ current_month.year }}&month={{ current_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-sm btn-outline" aria-label="Export transactions to CSV">Export</a>
     </div>
     {% if page_obj %}
         <div class="table-responsive">
             <table class="modern-table">
+                <caption class="visually-hidden">List of expenses for {{ current_month|date:"F Y" }}</caption>
                 <thead>
                     <tr>
-                        <th>Title</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Date</th>
-                        <th></th>
+                        <th scope="col">Title</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,10 +126,10 @@
                         <td><span class="category-badge category-{{ expense.category|lower }}">{{ expense.category }}</span></td>
                         <td>{{ expense.date|date:"M d" }}</td>
                         <td class="actions-cell">
-                            <a href="{% url 'edit_expense' expense.id %}" class="icon-btn" title="Edit">✏️</a>
+                            <a href="{% url 'edit_expense' expense.id %}" class="icon-btn" title="Edit" aria-label="Edit expense {{ expense.title }}">✏️</a>
                             <form action="{% url 'delete_expense' expense.id %}" method="post" class="inline-form">
                                 {% csrf_token %}
-                                <button type="submit" class="icon-btn" onclick="return confirm('Delete?')" title="Delete">🗑️</button>
+                                <button type="submit" class="icon-btn" onclick="return confirm('Delete this expense?')" title="Delete" aria-label="Delete expense {{ expense.title }}">🗑️</button>
                             </form>
                         </td>
                     </tr>
@@ -125,25 +138,25 @@
             </table>
         </div>
         {% if page_obj.has_other_pages %}
-        <div class="pagination">
+        <nav class="pagination" aria-label="Pagination">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline">←</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline" aria-label="Previous page">←</a>
             {% endif %}
-            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <span aria-current="page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline">→</a>
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline" aria-label="Next page">→</a>
             {% endif %}
-        </div>
+        </nav>
         {% endif %}
     {% else %}
         <div class="empty-state">
             <p>No expenses this month. <a href="{% url 'add_expense' %}">Add one</a>.</p>
         </div>
     {% endif %}
-</div>
+</section>
 
 <script>
-    // Simplified spending trend (line chart)
+    // Spending trend (line chart)
     const trendCtx = document.getElementById('spendingTrendChart').getContext('2d');
     new Chart(trendCtx, {
         type: 'line',
@@ -162,7 +175,14 @@
         },
         options: {
             responsive: true,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `Spent: ${ctx.parsed.y.toFixed(2)}`
+                    }
+                }
+            },
             scales: { y: { beginAtZero: true } }
         }
     });
@@ -182,7 +202,14 @@
         options: {
             responsive: true,
             cutout: '60%',
-            plugins: { legend: { position: 'bottom' } }
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.label}: ${ctx.parsed.toFixed(2)}`
+                    }
+                }
+            }
         }
     });
 </script>

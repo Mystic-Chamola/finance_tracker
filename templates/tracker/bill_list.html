@@ -3,61 +3,64 @@
 {% block content %}
 <div class="page-header glass">
     <h1>Bills & Reminders</h1>
-    <a href="{% url 'bill_add' %}" class="btn btn-primary">+ Add Bill</a>
+    <a href="{% url 'bill_add' %}" class="btn btn-primary" aria-label="Add new bill">+ Add Bill</a>
 </div>
 
 <div class="content-card glass">
     {% if page_obj %}
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Amount</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                    <th>Recurring</th>
-                    <th>Reminder</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for bill in page_obj %}
-                <tr class="{% if bill.is_due_soon and not bill.is_paid %}due-soon-row{% endif %}">
-                    <td>{{ bill.title }}</td>
-                    <td>{{ bill.amount|format_currency:user_currency }}</td>
-                    <td>{{ bill.due_date|date:"M d, Y" }}</td>
-                    <td>
-                        {% if bill.is_paid %}
-                            <span class="badge paid">Paid</span>
-                        {% else %}
-                            <span class="badge unpaid">Unpaid</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if bill.is_recurring %}
-                            {{ bill.get_recurring_interval_display }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td>{{ bill.reminder_days_before }} days</td>
-                    <td class="actions-cell">
-                        {% if not bill.is_paid %}
-                        <form action="{% url 'bill_mark_paid' bill.id %}" method="post" class="inline-form">
-                            {% csrf_token %}
-                            <button type="submit" class="icon-btn btn-success" title="Mark Paid">✅</button>
-                        </form>
-                        {% endif %}
-                        <a href="{% url 'bill_edit' bill.id %}" class="icon-btn" title="Edit">✏️</a>
-                        <form action="{% url 'bill_delete' bill.id %}" method="post" class="inline-form">
-                            {% csrf_token %}
-                            <button type="submit" class="icon-btn" onclick="return confirm('Delete this bill?')" title="Delete">🗑️</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="modern-table">
+                <caption class="visually-hidden">List of bills and reminders</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Title</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Recurring</th>
+                        <th scope="col">Reminder</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in page_obj %}
+                    <tr class="{% if bill.is_due_soon and not bill.is_paid %}due-soon-row{% endif %}">
+                        <td>{{ bill.title }}</td>
+                        <td>{{ bill.amount|format_currency:user_currency }}</td>
+                        <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                        <td>
+                            {% if bill.is_paid %}
+                                <span class="badge paid" aria-label="Status: Paid">Paid</span>
+                            {% else %}
+                                <span class="badge unpaid" aria-label="Status: Unpaid">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if bill.is_recurring %}
+                                {{ bill.get_recurring_interval_display }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>{{ bill.reminder_days_before }} days</td>
+                        <td class="actions-cell">
+                            {% if not bill.is_paid %}
+                            <form action="{% url 'bill_mark_paid' bill.id %}" method="post" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn btn-success" title="Mark Paid" aria-label="Mark bill {{ bill.title }} as paid">✅</button>
+                            </form>
+                            {% endif %}
+                            <a href="{% url 'bill_edit' bill.id %}" class="icon-btn" title="Edit" aria-label="Edit bill {{ bill.title }}">✏️</a>
+                            <form action="{% url 'bill_delete' bill.id %}" method="post" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn" onclick="return confirm('Delete this bill?')" title="Delete" aria-label="Delete bill {{ bill.title }}">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% include 'tracker/pagination.html' %}
     {% else %}
         <div class="empty-state">

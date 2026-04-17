@@ -3,39 +3,42 @@
 {% block content %}
 <div class="page-header glass">
     <h1>Income</h1>
-    <a href="{% url 'income_add' %}" class="btn btn-primary">+ Add Income</a>
+    <a href="{% url 'income_add' %}" class="btn btn-primary" aria-label="Add new income">+ Add Income</a>
 </div>
 
 <div class="content-card glass">
     {% if page_obj %}
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Amount</th>
-                    <th>Category</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for income in page_obj %}
-                <tr>
-                    <td>{{ income.title }}</td>
-                    <td>{{ income.amount|format_currency:user_currency }}</td>
-                    <td>{{ income.category }}</td>
-                    <td>{{ income.date|date:"M d, Y" }}</td>
-                    <td class="actions-cell">
-                        <a href="{% url 'income_edit' income.id %}" class="icon-btn" title="Edit">✏️</a>
-                        <form action="{% url 'income_delete' income.id %}" method="post" class="inline-form">
-                            {% csrf_token %}
-                            <button type="submit" class="icon-btn" onclick="return confirm('Delete this income entry?')" title="Delete">🗑️</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="modern-table">
+                <caption class="visually-hidden">List of income records</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Title</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for income in page_obj %}
+                    <tr>
+                        <td>{{ income.title }}</td>
+                        <td>{{ income.amount|format_currency:user_currency }}</td>
+                        <td>{{ income.category }}</td>
+                        <td>{{ income.date|date:"M d, Y" }}</td>
+                        <td class="actions-cell">
+                            <a href="{% url 'income_edit' income.id %}" class="icon-btn" title="Edit" aria-label="Edit income {{ income.title }}">✏️</a>
+                            <form action="{% url 'income_delete' income.id %}" method="post" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn" onclick="return confirm('Delete this income entry?')" title="Delete" aria-label="Delete income {{ income.title }}">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% include 'tracker/pagination.html' %}
     {% else %}
         <div class="empty-state">
