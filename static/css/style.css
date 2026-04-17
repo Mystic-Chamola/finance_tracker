@@ -1,7 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – PREMIUM UI STYLES
-   Mobile‑First, Dark Mode, Smooth Animations
-   All Visibility & Alignment Fixes Included
+   Mobile‑First, No Horizontal Overflow, All Fixes Included
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -51,7 +50,7 @@ body.dark-mode {
     --table-header-bg: #334155;
 }
 
-/* ----- Base Reset & Global Styles ----- */
+/* ----- Base Reset & Global Overflow Prevention ----- */
 * {
     margin: 0;
     padding: 0;
@@ -66,6 +65,8 @@ body.dark-mode {
 html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 body {
@@ -82,6 +83,7 @@ body {
     padding-top: 72px;
     overflow-x: hidden;
     width: 100%;
+    max-width: 100vw;
 }
 
 /* ----- Typography ----- */
@@ -91,6 +93,7 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 0.5rem;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+    word-break: break-word;
 }
 
 h1 { font-size: clamp(1.8rem, 6vw, 2.5rem); }
@@ -123,6 +126,7 @@ a:hover {
     left: 0;
     right: 0;
     width: 100%;
+    max-width: 100vw;
     z-index: 1000;
     border-bottom: 1px solid var(--border);
 }
@@ -135,6 +139,7 @@ a:hover {
     background-clip: text;
     color: transparent;
     letter-spacing: -0.03em;
+    white-space: nowrap;
 }
 
 .nav-menu {
@@ -170,6 +175,7 @@ a:hover {
     font-weight: 500;
     transition: var(--transition);
     box-shadow: var(--card-shadow);
+    white-space: nowrap;
 }
 
 .theme-toggle:hover {
@@ -226,13 +232,21 @@ a:hover {
     transform: rotate(-45deg) translate(7px, -6px);
 }
 
-/* ----- Container & Layout ----- */
+/* ----- Container – prevents overflow ----- */
 .container {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 1.5rem 1.5rem 2rem;
+    padding: 1.5rem 1rem 2rem;
     flex: 1;
     width: 100%;
+    overflow-x: hidden;
+}
+
+@media (min-width: 640px) {
+    .container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
 }
 
 /* ----- Dashboard Header & Month Navigation ----- */
@@ -254,6 +268,7 @@ a:hover {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border);
+    flex-wrap: wrap;
 }
 
 .current-month {
@@ -267,8 +282,8 @@ a:hover {
 /* ----- Summary Cards (Dashboard) ----- */
 .summary-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
@@ -282,6 +297,7 @@ a:hover {
     border: 1px solid var(--border);
     backdrop-filter: blur(4px);
     word-break: break-word;
+    width: 100%;
 }
 
 .card:hover {
@@ -300,7 +316,7 @@ a:hover {
 }
 
 .card .amount {
-    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
@@ -334,6 +350,7 @@ a:hover {
     box-shadow: var(--card-shadow);
     margin-bottom: 2rem;
     border: 1px solid var(--border);
+    width: 100%;
 }
 
 .widget-header {
@@ -341,6 +358,8 @@ a:hover {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .goals-grid {
@@ -400,6 +419,7 @@ a:hover {
     box-shadow: var(--card-shadow);
     margin-bottom: 2rem;
     border: 1px solid var(--border);
+    width: 100%;
 }
 
 .chart-container {
@@ -414,11 +434,12 @@ a:hover {
     height: auto !important;
 }
 
-/* ----- Tables (Expenses, Income, etc.) ----- */
+/* ----- Tables – scroll on overflow, never exceed container ----- */
 .expense-list,
 .income-list,
 .bills-list,
-.recurring-list {
+.recurring-list,
+.contributions-section {
     background: var(--bg-secondary);
     border-radius: var(--border-radius);
     box-shadow: var(--card-shadow);
@@ -426,13 +447,14 @@ a:hover {
     border: 1px solid var(--border);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 600px;
+    min-width: 600px; /* Allows horizontal scroll on small screens */
 }
 
 th {
@@ -476,6 +498,7 @@ tr.category-other td:first-child { border-left: 4px solid #C9CBCF; }
     border-radius: 20px;
     background: var(--accent-light);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* ----- Buttons ----- */
@@ -533,6 +556,7 @@ tr.category-other td:first-child { border-left: 4px solid #C9CBCF; }
     border-radius: var(--border-radius);
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border);
+    width: calc(100% - 2rem);
 }
 
 input, select, textarea {
@@ -562,6 +586,7 @@ input:focus, select:focus, textarea:focus {
     top: 45px;
     right: 0;
     width: 320px;
+    max-width: calc(100vw - 20px);
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
@@ -587,6 +612,7 @@ input:focus, select:focus, textarea:focus {
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 10px;
+    width: auto;
 }
 
 /* ----- Profile & Settings ----- */
@@ -599,6 +625,7 @@ input:focus, select:focus, textarea:focus {
     align-items: center;
     flex-wrap: wrap;
     border: 1px solid var(--border);
+    width: 100%;
 }
 
 .avatar-large {
@@ -616,6 +643,7 @@ footer {
     color: var(--text-secondary);
     border-top: 1px solid var(--border);
     margin-top: 2rem;
+    width: 100%;
 }
 
 /* ----- Mobile Responsive Adjustments ----- */
@@ -625,7 +653,7 @@ footer {
     }
 
     .navbar {
-        padding: 0.5rem 1.25rem;
+        padding: 0.5rem 1rem;
     }
 
     .hamburger {
@@ -680,10 +708,7 @@ footer {
     .bills-list,
     .recurring-list,
     .contributions-section {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        margin: 0 -0.5rem;
-        padding: 0 0.5rem;
+        padding: 1rem;
     }
 
     table {
@@ -699,6 +724,7 @@ footer {
     .auth-container {
         margin: 1rem;
         padding: 1.5rem;
+        width: auto;
     }
 
     .notification-dropdown {
@@ -738,7 +764,7 @@ footer {
     }
 }
 
-/* ===== CRITICAL FIXES ===== */
+/* ===== CRITICAL FIXES (Visibility, Alignment, Overflow) ===== */
 
 /* 1. Prevent content clipping & ensure visibility */
 .card,
@@ -863,4 +889,10 @@ td, th, p, span, h1, h2, h3, h4, h5, h6, a {
     margin-top: 0 !important;
     margin-bottom: 0.75rem !important;
     width: 100% !important;
+}
+
+/* 6. Ultimate overflow protection */
+img, video, canvas, svg, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
 }
