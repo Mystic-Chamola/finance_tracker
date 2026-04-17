@@ -328,3 +328,71 @@ body {
     max-width: 90vw;
     right: 0;
 }
+/* ===== TABLE FIXES – CLEAR COLUMN SEPARATION ===== */
+.modern-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+    min-width: 600px;
+}
+
+.modern-table th,
+.modern-table td {
+    padding: 14px 12px !important;
+    border-bottom: 1px solid var(--glass-border);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.modern-table td {
+    white-space: nowrap;
+}
+
+/* Allow title to wrap if needed */
+.modern-table td:first-child {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 200px;
+}
+
+/* Actions column – keep buttons inline */
+.actions-cell {
+    white-space: nowrap;
+}
+
+.actions-cell .icon-btn {
+    display: inline-block;
+    margin: 0 4px;
+}
+
+/* Fallback header hidden when real thead exists */
+table:has(thead) tbody thead.fallback-thead {
+    display: none !important;
+}
+/* Status badges for bills & recurring */
+.badge.paid {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+.badge.unpaid {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+.badge.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+.badge.inactive {
+    background: rgba(100, 116, 139, 0.15);
+    color: var(--text-secondary);
+}
+tr.inactive {
+    opacity: 0.6;
+}
+tr.due-soon-row {
+    background: rgba(245, 158, 11, 0.08);
+}
+.icon-btn.btn-success {
+    color: var(--success);
+}

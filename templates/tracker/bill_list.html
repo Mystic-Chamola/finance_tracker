@@ -8,7 +8,7 @@
 
 <div class="bills-list">
     {% if bills %}
-        <table>
+        <table class="modern-table">
             <thead>
                 <tr>
                     <th>Title</th>
@@ -21,7 +21,7 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Duplicate fallback header -->
+                <!-- Duplicate fallback header (hidden when thead exists) -->
                 <thead class="fallback-thead">
                     <tr>
                         <th>Title</th>
@@ -53,17 +53,17 @@
                         {% endif %}
                     </td>
                     <td>{{ bill.reminder_days_before }} days</td>
-                    <td>
+                    <td class="actions-cell">
                         {% if not bill.is_paid %}
-                        <form action="{% url 'bill_mark_paid' bill.id %}" method="post" style="display: inline;">
+                        <form action="{% url 'bill_mark_paid' bill.id %}" method="post" class="inline-form">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-success">Mark Paid</button>
+                            <button type="submit" class="icon-btn btn-success" title="Mark Paid">✅</button>
                         </form>
                         {% endif %}
-                        <a href="{% url 'bill_edit' bill.id %}" class="btn btn-sm">Edit</a>
-                        <form action="{% url 'bill_delete' bill.id %}" method="post" style="display: inline;">
+                        <a href="{% url 'bill_edit' bill.id %}" class="icon-btn" title="Edit">✏️</a>
+                        <form action="{% url 'bill_delete' bill.id %}" method="post" class="inline-form">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this bill?')">Delete</button>
+                            <button type="submit" class="icon-btn" onclick="return confirm('Delete this bill?')" title="Delete">🗑️</button>
                         </form>
                     </td>
                 </tr>

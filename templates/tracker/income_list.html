@@ -8,7 +8,7 @@
 
 <div class="income-list">
     {% if incomes %}
-        <table>
+        <table class="modern-table">
             <thead>
                 <tr>
                     <th>Title</th>
@@ -35,11 +35,11 @@
                     <td>{{ income.amount|format_currency:user_currency }}</td>
                     <td>{{ income.category }}</td>
                     <td>{{ income.date|date:"M d, Y" }}</td>
-                    <td>
-                        <a href="{% url 'income_edit' income.id %}" class="btn btn-sm">Edit</a>
-                        <form action="{% url 'income_delete' income.id %}" method="post" style="display: inline;">
+                    <td class="actions-cell">
+                        <a href="{% url 'income_edit' income.id %}" class="icon-btn" title="Edit">✏️</a>
+                        <form action="{% url 'income_delete' income.id %}" method="post" class="inline-form">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this income entry?')">Delete</button>
+                            <button type="submit" class="icon-btn" onclick="return confirm('Delete this income entry?')" title="Delete">🗑️</button>
                         </form>
                     </td>
                 </tr>
