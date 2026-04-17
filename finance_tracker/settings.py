@@ -2,20 +2,19 @@
 Django settings for finance_tracker project.
 """
 
+import os
+import sys
 from pathlib import Path
 from decouple import config, Csv
-import dj_database_url
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security settings from environment
+# ===== SECURITY =====
 SECRET_KEY = config('SECRET_KEY')
-
 DEBUG = config('DEBUG', default=False, cast=bool)
-
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
 
+# ===== APPLICATIONS =====
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -24,28 +23,37 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+
+    # Third‑party
     'rest_framework',
     'rest_framework.authtoken',
     'django_filters',
     'axes',
+    #'corsheaders',                     # optional, if needed
+
+    # Local
     'tracker',
 ]
+
 SITE_ID = 1
 
+# ===== MIDDLEWARE =====
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'tracker.middleware.PerformanceMonitoringMiddleware',   # custom
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'axes.middleware.AxesMiddleware', 
+    'axes.middleware.AxesMiddleware',                       # brute‑force protection
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'csp.middleware.CSPMiddleware',
-    'tracker.middleware.ExceptionLoggingMiddleware',
+    'csp.middleware.CSPMiddleware',                         # Content Security Policy
+    'tracker.middleware.ExceptionLoggingMiddleware',        # custom error logging
 ]
 
+# ===== URL & TEMPLATES =====
 ROOT_URLCONF = 'finance_tracker.urls'
 
 TEMPLATES = [
@@ -65,120 +73,55 @@ TEMPLATES = [
         },
     },
 ]
-# ===== Security Headers & Settings =====
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
-SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
-
-# HSTS (only if using HTTPS)
-if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-
-# ===== Content Security Policy (CSP) =====
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_STYLE_SRC = ("'self'", "https://fonts.googleapis.com", "'unsafe-inline'")
-CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
-CSP_SCRIPT_SRC = ("'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'")
-CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_CONNECT_SRC = ("'self'",)
-CSP_FRAME_ANCESTORS = ("'none'",)
-CSP_REPORT_URI = ("/csp-report/",)  # optional endpoint
-
-# ===== Axes Configuration (Brute-Force Protection) =====
-AXES_FAILURE_LIMIT = 5               # lockout after 5 failed attempts
-AXES_COOLOFF_TIME = 1                # hours until reset
-AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
-AXES_RESET_ON_SUCCESS = True
-AXES_ENABLE_ADMIN = True             # also protect admin login
-
-# ===== Rate Limiting (django-ratelimit) =====
-# Applied via decorators in views
-
-# ===== Admin Hardening =====
-# Rename admin URL in urls.py (see below)
-# Optional: restrict admin by IP
-ADMIN_IP_WHITELIST = ['127.0.0.1', '::1']  # add your IPs
-
-# ===== Audit Logging (simple) =====
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'audit.log',
-            'formatter': 'verbose',
-        },
-    },
-    'loggers': {
-        'tracker.audit': {
-            'handlers': ['file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-    },
-}
 
 WSGI_APPLICATION = 'finance_tracker.wsgi.application'
 
-
+# ===== DATABASE =====
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
+# Use PostgreSQL if DATABASE_URL is provided (e.g., on Render)
+import dj_database_url
+db_from_env = dj_database_url.config(conn_max_age=600)
+if db_from_env:
+    DATABASES['default'].update(db_from_env)
+
+# ===== PASSWORD VALIDATION =====
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# ===== INTERNATIONALIZATION =====
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+# ===== STATIC & MEDIA =====
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles' 
-
-# Whitenoise configuration
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# ===== CACHING =====
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
-
-# REST Framework settings
+# ===== REST FRAMEWORK =====
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
@@ -195,69 +138,154 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
 }
-import sys
 
-if 'test' in sys.argv or 'pytest' in sys.modules:
-    DEBUG = True
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-    MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m]
-# Caching (local memory for development, use Redis in production)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-    }
-}
+# ===== AUTHENTICATION =====
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 
-# Test-specific settings
-import sys
-if 'test' in sys.argv or 'pytest' in sys.modules:
-    DEBUG = True
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-    MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m]
+# ===== SECURITY HEADERS =====
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
-# Custom error handlers
-handler404 = 'tracker.views.custom_404'
-handler500 = 'tracker.views.custom_500'
-handler403 = 'tracker.views.custom_403'
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-# Logging configuration
+# ===== CONTENT SECURITY POLICY (CSP) =====
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'", "https://fonts.googleapis.com", "'unsafe-inline'")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
+CSP_SCRIPT_SRC = ("'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'")
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+CSP_CONNECT_SRC = ("'self'",)
+CSP_FRAME_ANCESTORS = ("'none'",)
+
+# ===== AXES (Brute‑Force Protection) =====
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1   # hours
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
+AXES_RESET_ON_SUCCESS = True
+AXES_ENABLE_ADMIN = True
+
+# ===== LOGGING =====
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+        'access': {
+            'format': '{asctime} {levelname} {request.method} {request.path} {status_code} {request.user}',
             'style': '{',
         },
     },
-    'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'errors.log',
-            'formatter': 'verbose',
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
         },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+            'filters': ['require_debug_true'],
+        },
+        'file_error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'errors.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'file_access': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'access.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'formatter': 'access',
+        },
+        'file_audit': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'audit.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false'],
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['console', 'file_error', 'mail_admins'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['file_access', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
         },
         'tracker': {
-            'handlers': ['file', 'console'],
-            'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['console', 'file_error', 'file_audit'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'tracker.audit': {
+            'handlers': ['file_audit'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
+
+# ===== CUSTOM ERROR HANDLERS =====
+handler404 = 'tracker.views.custom_404'
+handler500 = 'tracker.views.custom_500'
+handler403 = 'tracker.views.custom_403'
+
+# ===== SENTRY (Optional) =====
+# import sentry_sdk
+# from sentry_sdk.integrations.django import DjangoIntegration
+# if not DEBUG and (dsn := os.environ.get('SENTRY_DSN')):
+#     sentry_sdk.init(
+#         dsn=dsn,
+#         integrations=[DjangoIntegration()],
+#         traces_sample_rate=1.0,
+#         send_default_pii=True,
+#     )
+
+# ===== TEST‑SPECIFIC SETTINGS =====
+if 'test' in sys.argv or 'pytest' in sys.modules:
+    DEBUG = True
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m]
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
+# ===== DEFAULT AUTO FIELD =====
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

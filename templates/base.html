@@ -38,42 +38,52 @@
             });
         }
     </script>
+
+    <!-- Google Analytics 4 (replace G-XXXXXXXXXX with your ID) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX', {
+            'user_id': '{{ user.id|default:"anonymous" }}'
+        });
+    </script>
+    <!-- Alternative: Plausible Analytics -->
+    <!-- <script defer data-domain="yourdomain.com" src="https://plausible.io/js/script.js"></script> -->
 </head>
 <body>
-    <!-- Skip to main content link for keyboard users -->
+    <!-- Skip to main content link -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <!-- Main Navigation -->
     <nav class="navbar glass" aria-label="Main navigation">
         <div class="nav-brand">
             <a href="{% url 'dashboard' %}" aria-label="Finance Tracker Home">💰 Finance Tracker</a>
         </div>
 
-        <!-- Hamburger button (mobile) -->
         <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu">
             <span class="bar"></span>
             <span class="bar"></span>
             <span class="bar"></span>
         </button>
 
-        <!-- Navigation Menu -->
         <ul class="nav-menu" id="nav-menu" role="list">
             {% if user.is_authenticated %}
-                <li role="listitem"><a href="{% url 'dashboard' %}">Dashboard</a></li>
-                <li role="listitem"><a href="{% url 'add_expense' %}">Add Expense</a></li>
-                <li role="listitem"><a href="{% url 'set_budget' %}">Set Budget</a></li>
-                <li role="listitem"><a href="{% url 'manage_category_budgets' %}">Category Budgets</a></li>
-                <li role="listitem"><a href="{% url 'recurring_list' %}">Recurring</a></li>
-                <li role="listitem"><a href="{% url 'goal_list' %}">Goals</a></li>
-                <li role="listitem"><a href="{% url 'income_list' %}">Income</a></li>
-                <li role="listitem"><a href="{% url 'bill_list' %}">Bills</a></li>
-                <li role="listitem"><a href="{% url 'generate_report' %}">Reports</a></li>
-                <li role="listitem"><a href="{% url 'profile' %}">Profile</a></li>
+                <li role="listitem"><a href="{% url 'dashboard' %}" data-track="click:navigation:dashboard">Dashboard</a></li>
+                <li role="listitem"><a href="{% url 'add_expense' %}" data-track="click:navigation:add_expense">Add Expense</a></li>
+                <li role="listitem"><a href="{% url 'set_budget' %}" data-track="click:navigation:set_budget">Set Budget</a></li>
+                <li role="listitem"><a href="{% url 'manage_category_budgets' %}" data-track="click:navigation:category_budgets">Category Budgets</a></li>
+                <li role="listitem"><a href="{% url 'recurring_list' %}" data-track="click:navigation:recurring">Recurring</a></li>
+                <li role="listitem"><a href="{% url 'goal_list' %}" data-track="click:navigation:goals">Goals</a></li>
+                <li role="listitem"><a href="{% url 'income_list' %}" data-track="click:navigation:income">Income</a></li>
+                <li role="listitem"><a href="{% url 'bill_list' %}" data-track="click:navigation:bills">Bills</a></li>
+                <li role="listitem"><a href="{% url 'generate_report' %}" data-track="click:navigation:reports">Reports</a></li>
+                <li role="listitem"><a href="{% url 'profile' %}" data-track="click:navigation:profile">Profile</a></li>
                 <li role="listitem"><span>Hello, {{ user.username }}</span></li>
                 <li role="listitem">
                     <form action="{% url 'logout' %}" method="post">
                         {% csrf_token %}
-                        <button type="submit" class="logout-btn" aria-label="Logout">Logout</button>
+                        <button type="submit" class="logout-btn" aria-label="Logout" data-track="click:navigation:logout">Logout</button>
                     </form>
                 </li>
             {% else %}
@@ -130,7 +140,7 @@
 
             <!-- Dark Mode Toggle -->
             <li role="listitem">
-                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" data-track="click:theme:toggle">
                     <span class="light-icon" aria-hidden="true">☀️</span>
                     <span class="dark-icon" aria-hidden="true">🌙</span>
                     <span id="theme-text">Dark</span>
@@ -139,7 +149,6 @@
         </ul>
     </nav>
 
-    <!-- Main Content Area -->
     <main id="main-content" class="container" tabindex="-1">
         {% if messages %}
             <div class="messages" role="status" aria-live="polite">
@@ -151,14 +160,12 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
     <footer role="contentinfo">
         <p>&copy; 2026 Finance Tracker</p>
     </footer>
 
-    <!-- JavaScript for Interactivity -->
     <script>
-        // Dark mode toggle with screen reader announcement
+        // Dark mode toggle
         (function() {
             const themeToggle = document.getElementById('theme-toggle');
             const themeText = document.getElementById('theme-text');
@@ -180,7 +187,7 @@
                 themeText.textContent = isDark ? 'Light' : 'Dark';
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
 
-                // Announce change to screen readers
+                // Announce to screen readers
                 const message = isDark ? 'Dark mode enabled' : 'Light mode enabled';
                 const announcer = document.createElement('div');
                 announcer.setAttribute('aria-live', 'polite');
@@ -203,7 +210,7 @@
             });
         })();
 
-        // Hamburger menu toggle with ARIA state update
+        // Hamburger menu
         const hamburger = document.getElementById('hamburger');
         const navMenu = document.getElementById('nav-menu');
         if (hamburger) {
@@ -214,7 +221,7 @@
             });
         }
 
-        // Notification dropdown toggle with ARIA state update
+        // Notification dropdown
         const bell = document.getElementById('notification-bell');
         const dropdown = document.getElementById('notification-dropdown');
         if (bell) {
@@ -229,6 +236,29 @@
                 dropdown.classList.remove('show');
             });
         }
+
+        // Event tracking helper
+        function trackEvent(action, category, label, value) {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', action, {
+                    'event_category': category,
+                    'event_label': label,
+                    'value': value
+                });
+            }
+            // Add Plausible or other providers here
+        }
+
+        // Auto‑track clicks on elements with data-track attribute
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-track]');
+            if (target) {
+                const trackData = target.dataset.track.split(':');
+                if (trackData.length >= 3) {
+                    trackEvent(trackData[0], trackData[1], trackData[2]);
+                }
+            }
+        });
     </script>
 
     {% block extra_js %}{% endblock %}
