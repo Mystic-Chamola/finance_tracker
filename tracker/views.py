@@ -5,9 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash, logout
 from django.contrib import messages
 from django.db.models import Sum
-from django.db.models.functions import TruncMonth, TruncDay
 from django.utils import timezone
-from django.http import HttpResponse
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
@@ -27,6 +25,7 @@ from .forms import (
 )
 from .utils import create_notification, check_budget_alerts, check_category_budget_alerts, check_bill_reminders
 from .audit import log_audit
+from .services.dashboard import DashboardService
 
 logger = logging.getLogger(__name__)
 
@@ -117,130 +116,103 @@ def register(request):
 
 
 # ============================================================
-# DASHBOARD
+# DASHBOARD (Refactored with DashboardService)
 # ============================================================
 
 @login_required
 def dashboard(request):
     try:
         user = request.user
-        now = timezone.now()
         year = request.GET.get('year')
         month = request.GET.get('month')
         category_filter = request.GET.get('category', '').strip()
 
-        if year and month:
-            try:
-                year, month = int(year), int(month)
-                selected_date = datetime(year, month, 1).date()
-            except (ValueError, TypeError):
-                selected_date = now.date().replace(day=1)
-        else:
-            selected_date = now.date().replace(day=1)
+        service = DashboardService(user)
+        selected_date = service.get_selected_date(year, month)
+        current_year, current_month = selected_date.year, selected_date.month
 
-        current_month, current_year = selected_date.month, selected_date.year
-        budget_obj, _ = Budget.objects.get_or_create(user=user, defaults={'monthly_limit': 0})
-        category_budgets = {cb.category: cb.monthly_limit for cb in CategoryBudget.objects.filter(user=user)}
+        budget_limit = service.get_budget()
+        category_budgets = service.get_category_budgets()
 
+        total_spent, total_income = service.get_monthly_totals(current_year, current_month)
+        net_savings = total_income - total_spent
+        remaining_budget = budget_limit - total_spent
+        over_budget = remaining_budget < 0
+
+        # Expenses with pagination
         expenses_qs = Expense.objects.filter(
             user=user, date__year=current_year, date__month=current_month
         ).select_related('recurring_source')
         if category_filter:
             expenses_qs = expenses_qs.filter(category__iexact=category_filter)
-
-        total_spent = expenses_qs.aggregate(total=Sum('amount'))['total'] or 0
-        total_income = Income.objects.filter(
-            user=user, date__year=current_year, date__month=current_month
-        ).aggregate(total=Sum('amount'))['total'] or 0
-
-        net_savings = total_income - total_spent
-        remaining_budget = budget_obj.monthly_limit - total_spent
-        over_budget = remaining_budget < 0
-
         paginator = Paginator(expenses_qs.order_by('-date'), 10)
         page_obj = paginator.get_page(request.GET.get('page'))
 
-        category_data = expenses_qs.values('category').annotate(total=Sum('amount')).order_by('-total')
-        categories = [item['category'] for item in category_data]
-        amounts = [float(item['total']) for item in category_data]
-        category_spending = {item['category']: item['total'] for item in category_data}
+        # Category breakdown
+        categories, amounts, category_spending = service.get_category_breakdown(
+            current_year, current_month, category_filter
+        )
 
-        start_date = selected_date - relativedelta(months=5)
-        monthly_qs = Expense.objects.filter(user=user, date__gte=start_date)
-        if category_filter:
-            monthly_qs = monthly_qs.filter(category__iexact=category_filter)
-        monthly_expenses = monthly_qs.annotate(month=TruncMonth('date')).values('month').annotate(total=Sum('amount')).order_by('month')
-        monthly_dict = {item['month'].strftime('%Y-%m'): float(item['total']) for item in monthly_expenses}
-        month_labels, monthly_totals = [], []
-        for i in range(5, -1, -1):
-            month_date = selected_date - relativedelta(months=i)
-            month_key = month_date.strftime('%Y-%m')
-            month_labels.append(month_date.strftime('%b %Y'))
-            monthly_totals.append(monthly_dict.get(month_key, 0))
+        # Monthly trends
+        month_labels, monthly_totals, monthly_income_totals = service.get_monthly_trends(
+            selected_date, category_filter=category_filter
+        )
 
-        monthly_income_qs = Income.objects.filter(user=user, date__gte=start_date)
-        monthly_income_data = monthly_income_qs.annotate(month=TruncMonth('date')).values('month').annotate(total=Sum('amount')).order_by('month')
-        income_dict = {item['month'].strftime('%Y-%m'): float(item['total']) for item in monthly_income_data}
-        monthly_income_totals = [income_dict.get((selected_date - relativedelta(months=i)).strftime('%Y-%m'), 0) for i in range(5, -1, -1)]
+        # Daily spending
+        daily_labels, daily_totals = service.get_daily_spending(
+            current_year, current_month, category_filter
+        )
 
-        daily_expenses = expenses_qs.annotate(day=TruncDay('date')).values('day').annotate(total=Sum('amount')).order_by('day')
-        daily_dict = {item['day'].day: float(item['total']) for item in daily_expenses}
-        days_in_month = (selected_date + relativedelta(day=31)).replace(day=1) - timedelta(days=1)
-        daily_labels = list(range(1, days_in_month.day + 1))
-        daily_totals = [daily_dict.get(day, 0) for day in daily_labels]
+        # Year‑over‑year
+        last_year_spent, last_year_income, last_year_month = service.get_year_over_year(selected_date)
 
-        last_year_date = selected_date - relativedelta(years=1)
-        last_year_spent = Expense.objects.filter(user=user, date__year=last_year_date.year, date__month=last_year_date.month).aggregate(total=Sum('amount'))['total'] or 0
-        last_year_income = Income.objects.filter(user=user, date__year=last_year_date.year, date__month=last_year_date.month).aggregate(total=Sum('amount'))['total'] or 0
+        # Forecast
+        forecast_months, forecast_values, forecast_next = service.get_forecast(selected_date)
 
-        past_months = [(selected_date - relativedelta(months=i)) for i in range(1, 4)]
-        forecast_values, forecast_months = [], []
-        for past_date in past_months:
-            spent = Expense.objects.filter(user=user, date__year=past_date.year, date__month=past_date.month).aggregate(total=Sum('amount'))['total'] or 0
-            forecast_months.append(past_date.strftime('%b %Y'))
-            forecast_values.append(float(spent))
-        forecast_next = sum(forecast_values) / len(forecast_values) if forecast_values else 0
+        # Category budget status
+        category_budget_status = service.get_category_budget_status(
+            current_year, current_month, category_spending, category_budgets
+        )
 
-        category_budget_status = []
-        for cat_code, cat_name in Expense.CATEGORY_CHOICES:
-            spent = float(category_spending.get(cat_code, 0))
-            limit = float(category_budgets.get(cat_code, 0))
-            if limit > 0:
-                percentage = min(100, (spent / limit) * 100)
-                remaining = limit - spent
-                over = spent > limit
-            else:
-                percentage = remaining = 0
-                over = False
-            category_budget_status.append({
-                'category': cat_code, 'display': cat_name, 'spent': spent,
-                'limit': limit, 'percentage': percentage, 'remaining': remaining, 'over': over,
-            })
+        active_goals = service.get_active_goals()
+        upcoming_bills = service.get_upcoming_bills()
 
-        active_goals = SavingsGoal.objects.filter(user=user, is_completed=False).order_by('-created_at')[:3]
-        upcoming_bills = Bill.objects.filter(
-            user=user, is_paid=False, due_date__gte=now.date(),
-            due_date__lte=now.date() + relativedelta(days=7)
-        ).order_by('due_date')
-
-        check_budget_alerts(user, total_spent, budget_obj.monthly_limit)
+        # Trigger notifications
+        check_budget_alerts(user, total_spent, budget_limit)
         check_category_budget_alerts(user, category_spending, category_budgets)
         check_bill_reminders(user)
 
         context = {
-            'page_obj': page_obj, 'total_spent': total_spent, 'total_income': total_income,
-            'net_savings': net_savings, 'budget_limit': budget_obj.monthly_limit, 'remaining': remaining_budget,
-            'over_budget': over_budget, 'categories': categories, 'amounts': amounts,
-            'month_labels': month_labels, 'monthly_totals': monthly_totals, 'monthly_income_totals': monthly_income_totals,
-            'current_month': selected_date, 'prev_month': selected_date - relativedelta(months=1),
-            'next_month': selected_date + relativedelta(months=1), 'category_filter': category_filter,
-            'active_goals': active_goals, 'category_budget_status': category_budget_status,
-            'upcoming_bills': upcoming_bills, 'daily_labels': daily_labels, 'daily_totals': daily_totals,
-            'last_year_spent': float(last_year_spent), 'last_year_income': float(last_year_income),
-            'last_year_month': last_year_date.strftime('%B %Y'), 'forecast_months': forecast_months,
-            'forecast_values': forecast_values, 'forecast_next': forecast_next,
+            'page_obj': page_obj,
+            'total_spent': total_spent,
+            'total_income': total_income,
+            'net_savings': net_savings,
+            'budget_limit': budget_limit,
+            'remaining': remaining_budget,
+            'over_budget': over_budget,
+            'categories': categories,
+            'amounts': amounts,
+            'month_labels': month_labels,
+            'monthly_totals': monthly_totals,
+            'monthly_income_totals': monthly_income_totals,
+            'current_month': selected_date,
+            'prev_month': selected_date - relativedelta(months=1),
+            'next_month': selected_date + relativedelta(months=1),
+            'category_filter': category_filter,
+            'active_goals': active_goals,
+            'category_budget_status': category_budget_status,
+            'upcoming_bills': upcoming_bills,
+            'daily_labels': daily_labels,
+            'daily_totals': daily_totals,
+            'last_year_spent': last_year_spent,
+            'last_year_income': last_year_income,
+            'last_year_month': last_year_month,
+            'forecast_months': forecast_months,
+            'forecast_values': forecast_values,
+            'forecast_next': forecast_next,
         }
         return render(request, 'tracker/dashboard.html', context)
+
     except Exception as e:
         logger.exception("Error rendering dashboard")
         messages.error(request, 'An error occurred while loading the dashboard. Please try again.')
