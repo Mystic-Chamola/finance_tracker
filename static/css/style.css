@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   Mobile‑First, Table Scroll + Wrap, All Fixes Included
+   All Fixes Included: Headers, Scrolling, Wrapping, Visibility
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ===== TABLES – SCROLL + WRAPPING + NO OVERLAP ===== */
+/* ===== TABLES – HORIZONTAL SCROLL + HEADERS + NO OVERLAP ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -450,6 +450,8 @@ a:hover {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     display: block;
+    isolation: isolate;
+    transform: translateZ(0);
 }
 
 table {
@@ -458,59 +460,66 @@ table {
     border-collapse: separate;
     border-spacing: 0;
     table-layout: auto;
+    background-color: var(--bg-secondary);
 }
 
+/* Force headers to always display */
 thead {
-    display: table-header-group;
-}
-
-tbody {
-    display: table-row-group;
-}
-
-tr {
-    display: table-row;
+    display: table-header-group !important;
 }
 
 th {
-    padding: 1rem 0.75rem;
-    border-bottom: 2px solid var(--border);
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--table-header-bg);
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 1rem 0.75rem !important;
+    border-bottom: 2px solid var(--border) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    background-color: var(--table-header-bg) !important;
     position: sticky;
     top: 72px;
     z-index: 10;
-    white-space: nowrap;
-    text-align: left;
+    white-space: nowrap !important;
+    text-align: left !important;
+}
+
+tbody {
+    display: table-row-group !important;
+}
+
+tr {
+    display: table-row !important;
 }
 
 td {
-    padding: 1rem 0.75rem;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-primary);
-    vertical-align: middle;
-    white-space: normal;
-    word-break: break-word;
+    display: table-cell !important;
+    padding: 1rem 0.75rem !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+    vertical-align: middle !important;
+    white-space: normal !important;
+    word-break: break-word !important;
     max-width: 250px;
+    background-color: var(--bg-secondary) !important;
 }
 
 /* Actions column – keep buttons inline */
 td:last-child {
-    white-space: nowrap;
+    white-space: nowrap !important;
     min-width: 160px;
 }
 
 td:last-child .btn,
 td:last-child form {
-    display: inline-block;
+    display: inline-block !important;
     margin-right: 0.25rem;
 }
 
-/* Category link */
+/* Category links */
 .category-link {
     display: inline-block;
     padding: 0.2rem 0.75rem;
@@ -749,11 +758,11 @@ footer {
     }
 
     table {
-        min-width: 700px;
+        padding-right: 1rem !important;
     }
 
     th, td {
-        padding: 0.75rem 0.5rem !important;
+        padding: 0.75rem 0.75rem !important;
     }
 
     .form-container,
@@ -834,54 +843,4 @@ footer {
 .empty-state {
     display: block !important;
     visibility: visible !important;
-}
-/* ===== PREVENT TEXT BLEED-THROUGH ===== */
-.expense-list,
-.income-list,
-.bills-list,
-.recurring-list,
-.contributions-section,
-table,
-thead,
-tbody,
-tr,
-th,
-td {
-    background-color: var(--bg-secondary) !important;
-    isolation: isolate;
-    position: relative;
-    z-index: 1;
-}
-
-/* Ensure table container creates a stacking context */
-.expense-list,
-.income-list,
-.bills-list,
-.recurring-list {
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-}
-
-/* If there's any stray text outside the table, hide it */
-.container > :not(.expense-list):not(.income-list):not(.bills-list):not(.recurring-list):not(.page-header):not(.dashboard-header) {
-    /* This is a broad rule; adjust if needed */
-    position: relative;
-    z-index: 0;
-}
-/* ===== RESTORE TABLE HEADERS ===== */
-th {
-    display: table-cell !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    color: var(--text-secondary) !important;
-    background-color: var(--table-header-bg) !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    padding: 1rem 0.75rem !important;
-    border-bottom: 2px solid var(--border) !important;
-    white-space: nowrap !important;
-}
-
-thead {
-    display: table-header-group !important;
 }
