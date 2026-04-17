@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   All Fixes: Headers, First Row, Scrolling, Wrapping, Visibility
+   All Fixes: Sticky Header, First Row Visible, Scrolling, etc.
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ===== TABLES – ALL FIXES ===== */
+/* ===== TABLES – AGGRESSIVE FIRST‑ROW FIX ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -451,7 +451,7 @@ a:hover {
     -webkit-overflow-scrolling: touch;
     display: block;
     isolation: isolate;
-    scroll-padding-top: 100px;   /* Prevents sticky header from covering content */
+    scroll-padding-top: 120px;   /* Extra space to prevent header overlap */
 }
 
 table {
@@ -463,7 +463,6 @@ table {
     background-color: var(--bg-secondary);
 }
 
-/* Force headers always visible */
 thead {
     display: table-header-group !important;
 }
@@ -487,17 +486,18 @@ th {
     text-align: left !important;
 }
 
-/* Fix: first row not hidden behind sticky header */
+/* Force first row down and visible */
 tbody::before {
     content: '';
     display: table-row;
-    height: 0;
+    height: 20px;   /* Creates a gap */
 }
 
 tbody tr:first-child td {
-    padding-top: 1.5rem !important;
+    padding-top: 2rem !important;
     position: relative;
-    z-index: 5;
+    z-index: 15 !important;   /* Ensure it sits above any pseudo elements */
+    background-color: var(--bg-secondary) !important;
 }
 
 tbody {
@@ -520,7 +520,7 @@ td {
     background-color: var(--bg-secondary) !important;
 }
 
-/* Actions column – keep buttons inline */
+/* Actions column */
 td:last-child {
     white-space: nowrap !important;
     min-width: 160px;
@@ -532,7 +532,6 @@ td:last-child form {
     margin-right: 0.25rem;
 }
 
-/* Category links */
 .category-link {
     display: inline-block;
     padding: 0.2rem 0.75rem;
@@ -845,14 +844,12 @@ footer {
     text-align: center !important;
 }
 
-/* Force text visibility */
 .amount, .goal-amounts, .bill-amount, td, th, p, span, h1, h2, h3, h4, h5, h6, a {
     color: var(--text-primary) !important;
     opacity: 1 !important;
     visibility: visible !important;
 }
 
-/* Empty state visibility */
 .empty-state {
     display: block !important;
     visibility: visible !important;
