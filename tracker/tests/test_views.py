@@ -1,10 +1,6 @@
 import pytest
 from django.urls import reverse
-from django.contrib.auth.models import User
-from tracker.tests.factories import (
-    UserFactory, ExpenseFactory, IncomeFactory, BudgetFactory,
-    SavingsGoalFactory, BillFactory
-)
+from tracker.tests.factories import UserFactory, ExpenseFactory, IncomeFactory, BudgetFactory, SavingsGoalFactory, BillFactory
 
 @pytest.mark.django_db
 class TestDashboardView:
@@ -26,6 +22,7 @@ class TestDashboardView:
         assert response.context['total_income'] == 500
         assert response.context['net_savings'] == 400
 
+
 @pytest.mark.django_db
 class TestIncomeViews:
     def test_income_list_authenticated(self, client):
@@ -34,7 +31,8 @@ class TestIncomeViews:
         IncomeFactory.create_batch(3, user=user)
         response = client.get(reverse('income_list'))
         assert response.status_code == 200
-        assert len(response.context['incomes']) == 3
+        assert 'page_obj' in response.context
+        assert len(response.context['page_obj']) == 3
 
     def test_income_add(self, client):
         user = UserFactory()
@@ -49,8 +47,18 @@ class TestIncomeViews:
         from tracker.models import Income
         assert Income.objects.filter(user=user, title='Freelance').exists()
 
+
 @pytest.mark.django_db
 class TestBillViews:
+    def test_bill_list_authenticated(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        BillFactory.create_batch(2, user=user)
+        response = client.get(reverse('bill_list'))
+        assert response.status_code == 200
+        assert 'page_obj' in response.context
+        assert len(response.context['page_obj']) == 2
+
     def test_bill_mark_paid(self, client):
         user = UserFactory()
         client.force_login(user)
@@ -60,8 +68,18 @@ class TestBillViews:
         bill.refresh_from_db()
         assert bill.is_paid is True
 
+
 @pytest.mark.django_db
 class TestGoalViews:
+    def test_goal_list_authenticated(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        SavingsGoalFactory.create_batch(2, user=user)
+        response = client.get(reverse('goal_list'))
+        assert response.status_code == 200
+        assert 'page_obj' in response.context
+        assert len(response.context['page_obj']) == 2
+
     def test_goal_contribute(self, client):
         user = UserFactory()
         client.force_login(user)
