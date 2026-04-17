@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   Mobile‑First, Smart Overflow, Table Scroll Fix, All Fixes
+   Mobile‑First, Table Scroll + Row Visibility Fix
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ===== TABLES – HORIZONTAL SCROLL ENABLED, NO CUTOFF ===== */
+/* ===== TABLES – HORIZONTAL SCROLL + ROW VISIBILITY ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -461,8 +461,26 @@ table {
     table-layout: auto !important;
 }
 
+/* Force table elements to be visible */
+table, thead, tbody, tfoot, tr, th, td {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+thead {
+    display: table-header-group !important;
+}
+
+tbody {
+    display: table-row-group !important;
+}
+
+tr {
+    display: table-row !important;
+}
+
 th {
-    text-align: left;
+    display: table-cell !important;
     padding: 1rem 1rem !important;
     border-bottom: 2px solid var(--border);
     color: var(--text-secondary);
@@ -478,14 +496,14 @@ th {
 }
 
 td {
+    display: table-cell !important;
     padding: 1rem 1rem !important;
     border-bottom: 1px solid var(--border);
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
     vertical-align: middle;
     white-space: nowrap !important;
 }
 
-/* Allow actions column to have more breathing room */
 th:last-child,
 td:last-child {
     padding-right: 1.5rem !important;
@@ -717,7 +735,6 @@ footer {
         margin: 0 auto;
     }
 
-    /* Extra spacing for mobile tables */
     .expense-list,
     .income-list,
     .bills-list,
