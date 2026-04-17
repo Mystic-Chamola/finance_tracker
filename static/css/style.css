@@ -738,3 +738,68 @@ footer {
         border: 1px solid #ccc !important;
     }
 }
+
+/* ===== FIX: Prevent Content Clipping in Cards & Containers ===== */
+.card,
+.goal-card,
+.category-budget-card,
+.bill-item,
+.notification-item,
+.notification-item-full,
+.analytics-section,
+.expense-list,
+.income-list,
+.bills-list,
+.recurring-list,
+.goals-widget,
+.profile-card,
+.settings-card,
+.contributions-section,
+.report-period,
+.form-container,
+.auth-container,
+.confirm-delete {
+    overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.goals-grid,
+.category-budgets-grid,
+.summary-cards {
+    align-items: start !important;
+}
+
+.expense-list,
+.income-list,
+.bills-list,
+.recurring-list {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+
+p, span, div, h1, h2, h3, h4, h5, h6, td, th, li, a {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.notification-item,
+.notification-item-full,
+.bill-item {
+    display: block !important;
+    white-space: normal !important;
+}
+
+.chart-container {
+    overflow: visible !important;
+}
+
+.dashboard-header,
+.widget-header,
+.section-header,
+.page-header,
+.goal-detail-header {
+    flex-wrap: wrap;
+}
