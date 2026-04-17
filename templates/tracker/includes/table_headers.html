@@ -1,0 +1,10 @@
+{% comment %} 
+Usage: {% include 'tracker/includes/table_headers.html' with headers='Title,Amount,Category,Date,Actions' %}
+{% endcomment %}
+<thead>
+    <tr>
+        {% for header in headers.split ',' %}
+            <th>{{ header.strip }}</th>
+        {% endfor %}
+    </tr>
+</thead>

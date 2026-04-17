@@ -10,6 +10,9 @@ from django.http import HttpResponse
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from .models import (
     Expense, Budget, RecurringExpense, SavingsGoal, SavingsContribution,
     Income, CategoryBudget, Bill, Notification, UserProfile, Currency
@@ -21,6 +24,58 @@ from .forms import (
 )
 from .utils import create_notification, check_budget_alerts, check_category_budget_alerts, check_bill_reminders
 
+
+# ============================================================
+# BASE CLASS FOR PAGINATED LIST VIEWS
+# ============================================================
+
+class PaginatedListView(LoginRequiredMixin, ListView):
+    """Base list view with pagination (20 items per page) and user filtering."""
+    paginate_by = 20
+    context_object_name = 'page_obj'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(user=self.request.user)
+
+
+# ============================================================
+# CLASS-BASED LIST VIEWS
+# ============================================================
+
+class IncomeListView(PaginatedListView):
+    model = Income
+    template_name = 'tracker/income_list.html'
+    ordering = ['-date']
+
+
+class BillListView(PaginatedListView):
+    model = Bill
+    template_name = 'tracker/bill_list.html'
+    ordering = ['is_paid', 'due_date']
+
+
+class RecurringListView(PaginatedListView):
+    model = RecurringExpense
+    template_name = 'tracker/recurring_list.html'
+    ordering = ['-is_active', 'next_due']
+
+
+class GoalListView(PaginatedListView):
+    model = SavingsGoal
+    template_name = 'tracker/goal_list.html'
+    ordering = ['-is_completed', '-created_at']
+
+
+class NotificationListView(PaginatedListView):
+    model = Notification
+    template_name = 'tracker/notification_list.html'
+    ordering = ['-created_at']
+
+
+# ============================================================
+# AUTHENTICATION
+# ============================================================
 
 def register(request):
     if request.method == 'POST':
@@ -35,6 +90,10 @@ def register(request):
         form = RegisterForm()
     return render(request, 'registration/register.html', {'form': form})
 
+
+# ============================================================
+# DASHBOARD
+# ============================================================
 
 @login_required
 def dashboard(request):
@@ -162,6 +221,10 @@ def dashboard(request):
     return render(request, 'tracker/dashboard.html', context)
 
 
+# ============================================================
+# EXPENSES
+# ============================================================
+
 @login_required
 def add_expense(request):
     if request.method == 'POST':
@@ -200,6 +263,10 @@ def delete_expense(request, pk):
         return redirect('dashboard')
     return render(request, 'tracker/delete_expense.html', {'expense': expense})
 
+
+# ============================================================
+# BUDGETS
+# ============================================================
 
 @login_required
 def set_budget(request):
@@ -242,6 +309,10 @@ def manage_category_budgets(request):
     })
 
 
+# ============================================================
+# EXPORT
+# ============================================================
+
 @login_required
 def export_csv(request):
     user = request.user
@@ -275,13 +346,9 @@ def export_csv(request):
     return response
 
 
-@login_required
-def recurring_list(request):
-    recurrings = RecurringExpense.objects.filter(user=request.user).order_by('-is_active', 'next_due')
-    paginator = Paginator(recurrings, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'tracker/recurring_list.html', {'page_obj': page_obj})
-
+# ============================================================
+# RECURRING EXPENSES (function‑based add/edit/delete/toggle)
+# ============================================================
 
 @login_required
 def recurring_add(request):
@@ -333,13 +400,9 @@ def recurring_toggle(request, pk):
     return redirect('recurring_list')
 
 
-@login_required
-def goal_list(request):
-    goals = SavingsGoal.objects.filter(user=request.user).order_by('-is_completed', '-created_at')
-    paginator = Paginator(goals, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'tracker/goal_list.html', {'page_obj': page_obj})
-
+# ============================================================
+# SAVINGS GOALS (function‑based add/edit/delete/detail/contribute)
+# ============================================================
 
 @login_required
 def goal_add(request):
@@ -412,13 +475,9 @@ def goal_contribute(request, pk):
     return render(request, 'tracker/goal_contribute.html', {'form': form, 'goal': goal})
 
 
-@login_required
-def income_list(request):
-    incomes = Income.objects.filter(user=request.user).order_by('-date')
-    paginator = Paginator(incomes, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'tracker/income_list.html', {'page_obj': page_obj})
-
+# ============================================================
+# INCOME (function‑based add/edit/delete)
+# ============================================================
 
 @login_required
 def income_add(request):
@@ -458,6 +517,84 @@ def income_delete(request, pk):
         return redirect('income_list')
     return render(request, 'tracker/income_confirm_delete.html', {'income': income})
 
+
+# ============================================================
+# BILLS (function‑based add/edit/delete/mark paid)
+# ============================================================
+
+@login_required
+def bill_add(request):
+    if request.method == 'POST':
+        form = BillForm(request.POST)
+        if form.is_valid():
+            bill = form.save(commit=False)
+            bill.user = request.user
+            bill.save()
+            messages.success(request, 'Bill added successfully.')
+            return redirect('bill_list')
+    else:
+        form = BillForm()
+    return render(request, 'tracker/bill_form.html', {'form': form, 'title': 'Add Bill'})
+
+
+@login_required
+def bill_edit(request, pk):
+    bill = get_object_or_404(Bill, pk=pk, user=request.user)
+    if request.method == 'POST':
+        form = BillForm(request.POST, instance=bill)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Bill updated.')
+            return redirect('bill_list')
+    else:
+        form = BillForm(instance=bill)
+    return render(request, 'tracker/bill_form.html', {'form': form, 'title': 'Edit Bill'})
+
+
+@login_required
+def bill_delete(request, pk):
+    bill = get_object_or_404(Bill, pk=pk, user=request.user)
+    if request.method == 'POST':
+        bill.delete()
+        messages.success(request, 'Bill deleted.')
+        return redirect('bill_list')
+    return render(request, 'tracker/bill_confirm_delete.html', {'bill': bill})
+
+
+@login_required
+def bill_mark_paid(request, pk):
+    bill = get_object_or_404(Bill, pk=pk, user=request.user)
+    if request.method == 'POST':
+        bill.mark_paid_and_create_next()
+        messages.success(request, f'Bill "{bill.title}" marked as paid.')
+        return redirect('bill_list')
+    return render(request, 'tracker/bill_mark_paid.html', {'bill': bill})
+
+
+# ============================================================
+# NOTIFICATIONS (function‑based mark read)
+# ============================================================
+
+@login_required
+def mark_notification_read(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.is_read = True
+    notification.save()
+    if notification.link:
+        return redirect(notification.link)
+    return redirect('notification_list')
+
+
+@login_required
+def mark_all_read(request):
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    messages.success(request, 'All notifications marked as read.')
+    return redirect('notification_list')
+
+
+# ============================================================
+# REPORTS
+# ============================================================
 
 @login_required
 def generate_report(request):
@@ -541,86 +678,9 @@ def generate_report(request):
     return render(request, 'tracker/report.html', context)
 
 
-@login_required
-def bill_list(request):
-    bills = Bill.objects.filter(user=request.user).order_by('is_paid', 'due_date')
-    paginator = Paginator(bills, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'tracker/bill_list.html', {'page_obj': page_obj})
-
-
-@login_required
-def bill_add(request):
-    if request.method == 'POST':
-        form = BillForm(request.POST)
-        if form.is_valid():
-            bill = form.save(commit=False)
-            bill.user = request.user
-            bill.save()
-            messages.success(request, 'Bill added successfully.')
-            return redirect('bill_list')
-    else:
-        form = BillForm()
-    return render(request, 'tracker/bill_form.html', {'form': form, 'title': 'Add Bill'})
-
-
-@login_required
-def bill_edit(request, pk):
-    bill = get_object_or_404(Bill, pk=pk, user=request.user)
-    if request.method == 'POST':
-        form = BillForm(request.POST, instance=bill)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Bill updated.')
-            return redirect('bill_list')
-    else:
-        form = BillForm(instance=bill)
-    return render(request, 'tracker/bill_form.html', {'form': form, 'title': 'Edit Bill'})
-
-
-@login_required
-def bill_delete(request, pk):
-    bill = get_object_or_404(Bill, pk=pk, user=request.user)
-    if request.method == 'POST':
-        bill.delete()
-        messages.success(request, 'Bill deleted.')
-        return redirect('bill_list')
-    return render(request, 'tracker/bill_confirm_delete.html', {'bill': bill})
-
-
-@login_required
-def bill_mark_paid(request, pk):
-    bill = get_object_or_404(Bill, pk=pk, user=request.user)
-    if request.method == 'POST':
-        bill.mark_paid_and_create_next()
-        messages.success(request, f'Bill "{bill.title}" marked as paid.')
-        return redirect('bill_list')
-    return render(request, 'tracker/bill_mark_paid.html', {'bill': bill})
-
-
-@login_required
-def notification_list(request):
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    paginator = Paginator(notifications, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'tracker/notification_list.html', {'page_obj': page_obj})
-
-
-@login_required
-def mark_notification_read(request, pk):
-    notification = get_object_or_404(Notification, pk=pk, user=request.user)
-    notification.is_read = True
-    notification.save()
-    if notification.link:
-        return redirect(notification.link)
-    return redirect('notification_list')
-
-
-@login_required
-def mark_all_read(request):
-    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    return redirect('notification_list')
-
+# ============================================================
+# PROFILE & SETTINGS
+# ============================================================
 
 @login_required
 def profile(request):
@@ -674,6 +734,10 @@ def delete_account(request):
         form = DeleteAccountForm()
     return render(request, 'tracker/delete_account.html', {'form': form})
 
+
+# ============================================================
+# CURRENCY
+# ============================================================
 
 @login_required
 def set_currency(request):
