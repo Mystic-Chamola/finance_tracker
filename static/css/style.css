@@ -49,6 +49,13 @@ body.dark-mode {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    max-width: 100%;
+}
+
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
 }
 
 body {
@@ -62,6 +69,7 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    padding-top: 70px;
 }
 
 /* ===== Typography ===== */
@@ -94,9 +102,12 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 100;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
     backdrop-filter: blur(8px);
 }
 
@@ -224,6 +235,7 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     margin: 2rem auto;
     padding: 0 1.5rem;
     flex: 1;
+    width: 100%;
 }
 
 /* ===== Dashboard Header ===== */
@@ -261,7 +273,7 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     font-weight: 500;
 }
 
-/* ===== Cards (with overflow fix) ===== */
+/* ===== Cards ===== */
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -279,6 +291,8 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     border: 1px solid var(--border);
     min-width: 0;
     overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .card:hover {
@@ -324,7 +338,6 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     border-radius: 20px;
 }
 
-/* Negative amount styling */
 .amount.negative {
     color: var(--danger) !important;
 }
@@ -337,6 +350,8 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     box-shadow: var(--card-shadow);
     margin-bottom: 2rem;
     border: 1px solid var(--border);
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .widget-header {
@@ -568,6 +583,8 @@ tr.due-soon-row {
     margin-bottom: 2rem;
     border: 1px solid var(--border);
     transition: var(--transition);
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .analytics-section:hover {
@@ -583,6 +600,12 @@ tr.due-soon-row {
 .chart-container {
     max-width: 500px;
     margin: 0 auto;
+    overflow-x: auto;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+    height: auto !important;
 }
 
 .chart-hint {
@@ -617,6 +640,8 @@ tr.due-soon-row {
     box-shadow: var(--card-shadow);
     padding: 1.8rem;
     border: 1px solid var(--border);
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .expense-list-header {
@@ -666,6 +691,10 @@ table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 th {
@@ -698,7 +727,6 @@ tbody tr:hover {
     background: var(--accent-light);
 }
 
-/* Category color coding */
 tr.category-food td:first-child { border-left: 4px solid #FF6384; }
 tr.category-transport td:first-child { border-left: 4px solid #36A2EB; }
 tr.category-entertainment td:first-child { border-left: 4px solid #FFCE56; }
@@ -974,7 +1002,7 @@ body.dark-mode .alert.error {
     border: 1px solid var(--border);
 }
 
-/* ===== Page Header (used in recurring/goals list) ===== */
+/* ===== Page Header ===== */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -1113,7 +1141,6 @@ tr.inactive {
     font-size: 0.9rem;
 }
 
-/* Notification List Page */
 .notifications-list {
     display: flex;
     flex-direction: column;
@@ -1344,107 +1371,6 @@ footer {
     margin-bottom: 1rem;
 }
 
-/* ===== Responsive Styles ===== */
-@media (max-width: 768px) {
-    .navbar {
-        padding: 0.75rem 1.5rem;
-    }
-
-    .hamburger {
-        display: flex;
-    }
-
-    .nav-menu {
-        position: fixed;
-        left: -100%;
-        top: 65px;
-        flex-direction: column;
-        background-color: var(--navbar-bg);
-        width: 100%;
-        text-align: center;
-        transition: 0.3s ease;
-        box-shadow: var(--card-shadow);
-        padding: 2rem 0;
-        gap: 1.5rem;
-        z-index: 5;
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
-    }
-
-    .nav-menu.active {
-        left: 0;
-    }
-
-    .nav-menu li {
-        margin: 0.5rem 0;
-    }
-
-    .dashboard-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .month-navigation {
-        justify-content: space-between;
-    }
-
-    .expense-list-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .header-actions {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .search-input {
-        width: 100%;
-    }
-
-    .search-input:focus {
-        width: 100%;
-    }
-
-    table {
-        display: block;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .card .amount {
-        font-size: 2rem;
-    }
-
-    .form-container, .auth-container {
-        padding: 1.8rem;
-        margin: 1.5rem;
-    }
-
-    .current-amount {
-        font-size: 2.2rem;
-    }
-
-    .summary-cards {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* ===== Additional Polish ===== */
-html {
-    scroll-behavior: smooth;
-}
-
-::selection {
-    background: var(--accent);
-    color: white;
-}
-
-:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-}
-
 /* ===== Print styles for reports ===== */
 @media print {
     .navbar, .hamburger, .nav-menu, .theme-toggle, .logout-btn,
@@ -1497,69 +1423,108 @@ html {
         color: black;
     }
 }
-/* ===== Mobile Stability Fixes ===== */
 
-/* Prevent horizontal overflow on all elements */
-* {
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-/* Ensure body and html don't cause overflow */
-html, body {
-    overflow-x: hidden;
-    width: 100%;
-    position: relative;
-}
-
-/* Fix sticky navbar to prevent content jump */
-.navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 1000;
-}
-
-/* Add padding to body to account for fixed navbar */
-body {
-    padding-top: 70px;  /* Adjust to match navbar height */
-}
-
+/* ===== Mobile Stability & Centering Fixes ===== */
 @media (max-width: 768px) {
     body {
         padding-top: 60px;
     }
-}
 
-/* Prevent tables and pre from causing overflow */
-table, pre, .code-block {
-    max-width: 100%;
-    word-wrap: break-word;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
+    .navbar {
+        padding: 0.75rem 1.5rem;
+    }
 
-/* Fix chart containers on mobile */
-.chart-container {
-    max-width: 100%;
-    overflow-x: auto;
-}
+    .hamburger {
+        display: flex;
+    }
 
-.chart-container canvas {
-    max-width: 100%;
-    height: auto !important;
-}
+    .nav-menu {
+        position: fixed;
+        left: -100%;
+        top: 65px;
+        flex-direction: column;
+        background-color: var(--navbar-bg);
+        width: 100%;
+        text-align: center;
+        transition: 0.3s ease;
+        box-shadow: var(--card-shadow);
+        padding: 2rem 0;
+        gap: 1.5rem;
+        z-index: 5;
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+    }
 
-/* Ensure cards and widgets don't overflow */
-.card, .goals-widget, .analytics-section, .expense-list {
-    word-break: break-word;
-    overflow-wrap: break-word;
-}
+    .nav-menu.active {
+        left: 0;
+    }
 
-/* Fix notification dropdown position on mobile */
-@media (max-width: 600px) {
+    .nav-menu li {
+        margin: 0.5rem 0;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .month-navigation {
+        justify-content: space-between;
+    }
+
+    .summary-cards {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        gap: 1rem;
+    }
+
+    .summary-cards .card {
+        width: 100%;
+        max-width: 350px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .expense-list-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    .search-input:focus {
+        width: 100%;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .card .amount {
+        font-size: 2rem;
+    }
+
+    .form-container, .auth-container {
+        padding: 1.8rem;
+        margin: 1.5rem;
+    }
+
+    .current-amount {
+        font-size: 2.2rem;
+    }
+
     .notification-dropdown {
         position: fixed;
         top: 60px;
@@ -1570,8 +1535,17 @@ table, pre, .code-block {
     }
 }
 
-/* Prevent fixed elements from shifting */
-.fixed-element {
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
+/* ===== Additional Polish ===== */
+html {
+    scroll-behavior: smooth;
+}
+
+::selection {
+    background: var(--accent);
+    color: white;
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
