@@ -3,20 +3,20 @@
 {% load static %}
 {% block content %}
 
-{# --- CONSOLIDATED BALANCE CARD --- #}
+{# --- CONSOLIDATED BALANCE CARD (NET WORTH) --- #}
 <div class="balance-bento">
     <div class="balance-card glass">
         <div class="balance-header">
-            <span class="balance-label">Total Balance</span>
-            <span class="balance-amount">{{ total_income|add:total_spent|default:0|format_currency:user_currency }}</span>
+            <span class="balance-label">Net Worth</span>
+            <span class="balance-amount">{{ net_savings|format_currency:user_currency }}</span>
         </div>
         <div class="balance-details">
             <div class="balance-item">
-                <span class="item-label">💰 Available</span>
+                <span class="item-label">💰 Total Income</span>
                 <span class="item-value positive">{{ total_income|format_currency:user_currency }}</span>
             </div>
             <div class="balance-item">
-                <span class="item-label">📉 Spent</span>
+                <span class="item-label">📉 Total Spent</span>
                 <span class="item-value negative">{{ total_spent|format_currency:user_currency }}</span>
             </div>
         </div>

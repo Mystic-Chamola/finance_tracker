@@ -48,6 +48,66 @@ body {
 }
 .glass:hover { box-shadow: var(--shadow-md); }
 
+/* Navigation Bar – Glass Style */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+}
+
+.nav-brand a {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.nav-menu li {
+    margin: 0;
+}
+
+.nav-menu a,
+.nav-menu span,
+.nav-menu button {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 40px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.nav-menu a:hover {
+    background: var(--glass-bg);
+    box-shadow: var(--shadow-sm);
+}
+
+.logout-btn {
+    color: var(--danger) !important;
+}
+
 /* Consolidated Balance Card */
 .balance-bento { margin-bottom: 24px; }
 .balance-card {
@@ -204,4 +264,36 @@ body {
     .balance-amount { font-size: 2.2rem; }
     .charts-container { grid-template-columns: 1fr; }
     .insights-grid { grid-template-columns: 1fr; }
+    .hamburger { display: flex; }
+    .nav-menu {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border-radius: var(--border-radius-lg);
+        padding: 16px;
+        margin-top: 12px;
+    }
+    .nav-menu.active { display: flex; }
+}
+
+/* Hamburger Menu */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 28px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+.hamburger .bar {
+    width: 28px;
+    height: 3px;
+    background-color: var(--text-primary);
+    border-radius: 10px;
+    transition: var(--transition);
 }

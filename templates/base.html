@@ -4,38 +4,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Finance Tracker</title>
-     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="{% static 'manifest.json' %}">
-    <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FinTrack">
-    <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Finance Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v={{ STATIC_VERSION|default:'2' }}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-     <!-- Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{% static 'service-worker.js' %}")
-                    .then((registration) => {
-                        console.log('Service Worker registered with scope:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Service Worker registration failed:', error);
-                    });
-            });
-        }
-    </script>
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar glass">
         <div class="nav-brand">
             <a href="{% url 'dashboard' %}">💰 Finance Tracker</a>
         </div>
@@ -55,7 +33,7 @@
                 <li><a href="{% url 'income_list' %}">Income</a></li>
                 <li><a href="{% url 'bill_list' %}">Bills</a></li>
                 <li><a href="{% url 'generate_report' %}">Reports</a></li>
-                <li><a href="{% url 'profile' %}">👤 Profile</a></li>
+                <li><a href="{% url 'profile' %}">Profile</a></li>
                 <li><span>Hello, {{ user.username }}</span></li>
                 <li>
                     <form action="{% url 'logout' %}" method="post" style="display: inline;">
@@ -133,7 +111,7 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 Student Finance Tracker</p>
+        <p>&copy; 2026 Finance Tracker</p>
     </footer>
 
     <script>
@@ -173,10 +151,12 @@
         // Hamburger menu toggle
         const hamburger = document.getElementById('hamburger');
         const navMenu = document.getElementById('nav-menu');
-        hamburger.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            hamburger.classList.toggle('active');
-        });
+        if (hamburger) {
+            hamburger.addEventListener('click', () => {
+                navMenu.classList.toggle('active');
+                hamburger.classList.toggle('active');
+            });
+        }
 
         // Notification dropdown toggle
         const bell = document.getElementById('notification-bell');
