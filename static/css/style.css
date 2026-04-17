@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   Mobile‑First, Smart Overflow, All Fixes Included
+   Mobile‑First, Smart Overflow, Table Scroll Fix, All Fixes
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ----- Tables – Only scroll when necessary ----- */
+/* ===== TABLES – HORIZONTAL SCROLL ENABLED, NO CUTOFF ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -447,20 +447,23 @@ a:hover {
     padding: 1.5rem;
     border: 1px solid var(--border);
     width: 100%;
-    overflow-x: auto;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch;
+    display: block !important;
 }
 
 table {
-    width: 100%;
+    width: max-content !important;
+    min-width: 100% !important;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 600px; /* Ensures horizontal scroll on narrow screens */
+    table-layout: auto !important;
 }
 
 th {
     text-align: left;
-    padding: 1rem 0.75rem;
+    padding: 1rem 1rem !important;
     border-bottom: 2px solid var(--border);
     color: var(--text-secondary);
     font-weight: 600;
@@ -471,16 +474,21 @@ th {
     position: sticky;
     top: 72px;
     z-index: 10;
-    white-space: nowrap;
+    white-space: nowrap !important;
 }
 
 td {
-    padding: 1rem 0.75rem;
+    padding: 1rem 1rem !important;
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
     vertical-align: middle;
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap !important;
+}
+
+/* Allow actions column to have more breathing room */
+th:last-child,
+td:last-child {
+    padding-right: 1.5rem !important;
 }
 
 tbody tr:hover {
@@ -709,16 +717,24 @@ footer {
         margin: 0 auto;
     }
 
+    /* Extra spacing for mobile tables */
     .expense-list,
     .income-list,
     .bills-list,
     .recurring-list,
     .contributions-section {
-        padding: 1rem;
+        padding: 1rem 0.5rem !important;
+        margin-left: -0.5rem !important;
+        margin-right: -0.5rem !important;
+        width: calc(100% + 1rem) !important;
+    }
+
+    table {
+        padding-right: 1rem !important;
     }
 
     th, td {
-        padding: 0.75rem 0.5rem;
+        padding: 0.75rem 0.75rem !important;
     }
 
     .form-container,
@@ -765,8 +781,7 @@ footer {
     }
 }
 
-/* ===== FINAL FIXES ===== */
-/* Ensure all text is visible and cards align properly */
+/* ===== FINAL FIXES – CARD ALIGNMENT & TEXT VISIBILITY ===== */
 .card,
 .goal-card,
 .category-budget-card,
@@ -788,15 +803,6 @@ footer {
     align-items: center !important;
     text-align: center !important;
 }
-
-/* Reset table display to native */
-table, thead, tbody, tfoot, tr, th, td {
-    display: revert !important;
-}
-thead { display: table-header-group !important; }
-tbody { display: table-row-group !important; }
-tr { display: table-row !important; }
-th, td { display: table-cell !important; }
 
 /* Force text visibility */
 .amount, .goal-amounts, .bill-amount, td, th, p, span, h1, h2, h3, h4, h5, h6, a {
