@@ -854,3 +854,7 @@ footer {
     display: block !important;
     visibility: visible !important;
 }
+/* Hide fallback header row when thead exists and is visible */
+table:has(thead:not([style*="display: none"])) tbody tr.fallback-header {
+    display: none !important;
+}
