@@ -1,6 +1,8 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.views.generic import TemplateView 
 from . import views
+
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -49,6 +51,6 @@ urlpatterns = [
     path('profile/delete/', views.delete_account, name='delete_account'),
     # Currency
     path('set-currency/', views.set_currency, name='set_currency'),
-
+    # Offline fallback (PWA)
     path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
 ]
