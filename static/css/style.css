@@ -1497,3 +1497,81 @@ html {
         color: black;
     }
 }
+/* ===== Mobile Stability Fixes ===== */
+
+/* Prevent horizontal overflow on all elements */
+* {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure body and html don't cause overflow */
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+}
+
+/* Fix sticky navbar to prevent content jump */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+/* Add padding to body to account for fixed navbar */
+body {
+    padding-top: 70px;  /* Adjust to match navbar height */
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 60px;
+    }
+}
+
+/* Prevent tables and pre from causing overflow */
+table, pre, .code-block {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Fix chart containers on mobile */
+.chart-container {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+    height: auto !important;
+}
+
+/* Ensure cards and widgets don't overflow */
+.card, .goals-widget, .analytics-section, .expense-list {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Fix notification dropdown position on mobile */
+@media (max-width: 600px) {
+    .notification-dropdown {
+        position: fixed;
+        top: 60px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: none;
+    }
+}
+
+/* Prevent fixed elements from shifting */
+.fixed-element {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
