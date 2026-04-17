@@ -1,8 +1,6 @@
 import csv
-import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import update_session_auth_hash, logout
 from django.contrib import messages
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth, TruncDay
@@ -11,8 +9,10 @@ from django.http import HttpResponse
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
-from django.conf import settings
-from .models import Expense, Budget, RecurringExpense, SavingsGoal, SavingsContribution, Income, CategoryBudget, Bill, Notification, UserProfile, Currency
+from .models import (
+    Expense, Budget, RecurringExpense, SavingsGoal, SavingsContribution,
+    Income, CategoryBudget, Bill, Notification, UserProfile, Currency
+)
 from .forms import (
     RegisterForm, ExpenseForm, BudgetForm, RecurringExpenseForm,
     SavingsGoalForm, SavingsContributionForm, IncomeForm, CategoryBudgetForm,
@@ -46,76 +46,49 @@ def dashboard(request):
 
     if year and month:
         try:
-            year = int(year)
-            month = int(month)
+            year, month = int(year), int(month)
             selected_date = datetime(year, month, 1).date()
         except (ValueError, TypeError):
             selected_date = now.date().replace(day=1)
     else:
         selected_date = now.date().replace(day=1)
 
-    current_month = selected_date.month
-    current_year = selected_date.year
+    current_month, current_year = selected_date.month, selected_date.year
 
-    budget_obj, created = Budget.objects.get_or_create(user=user, defaults={'monthly_limit': 0})
-    budget_limit = budget_obj.monthly_limit
+    budget_obj, _ = Budget.objects.get_or_create(user=user, defaults={'monthly_limit': 0})
+    category_budgets = {cb.category: cb.monthly_limit for cb in CategoryBudget.objects.filter(user=user)}
 
     expenses_qs = Expense.objects.filter(
-        user=user,
-        date__year=current_year,
-        date__month=current_month
-    )
+        user=user, date__year=current_year, date__month=current_month
+    ).select_related('recurring_source')
     if category_filter:
         expenses_qs = expenses_qs.filter(category__iexact=category_filter)
 
-    expenses = expenses_qs.order_by('-date')
     total_spent = expenses_qs.aggregate(total=Sum('amount'))['total'] or 0
-
-    income_qs = Income.objects.filter(
-        user=user,
-        date__year=current_year,
-        date__month=current_month
-    )
-    total_income = income_qs.aggregate(total=Sum('amount'))['total'] or 0
+    total_income = Income.objects.filter(
+        user=user, date__year=current_year, date__month=current_month
+    ).aggregate(total=Sum('amount'))['total'] or 0
 
     net_savings = total_income - total_spent
-    remaining_budget = budget_limit - total_spent
+    remaining_budget = budget_obj.monthly_limit - total_spent
     over_budget = remaining_budget < 0
 
-    paginator = Paginator(expenses, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    paginator = Paginator(expenses_qs.order_by('-date'), 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
-    all_category_data = (
-        Expense.objects.filter(
-            user=user,
-            date__year=current_year,
-            date__month=current_month
-        )
-        .values('category')
-        .annotate(total=Sum('amount'))
-        .order_by('-total')
-    )
-    categories = [item['category'] for item in all_category_data]
-    amounts = [float(item['total']) for item in all_category_data]
+    category_data = expenses_qs.values('category').annotate(total=Sum('amount')).order_by('-total')
+    categories = [item['category'] for item in category_data]
+    amounts = [float(item['total']) for item in category_data]
+    category_spending = {item['category']: item['total'] for item in category_data}
 
     start_date = selected_date - relativedelta(months=5)
     monthly_qs = Expense.objects.filter(user=user, date__gte=start_date)
     if category_filter:
         monthly_qs = monthly_qs.filter(category__iexact=category_filter)
-
-    monthly_expenses = (
-        monthly_qs
-        .annotate(month=TruncMonth('date'))
-        .values('month')
-        .annotate(total=Sum('amount'))
-        .order_by('month')
-    )
-
+    monthly_expenses = monthly_qs.annotate(month=TruncMonth('date')).values('month').annotate(total=Sum('amount')).order_by('month')
+    monthly_dict = {item['month'].strftime('%Y-%m'): float(item['total']) for item in monthly_expenses}
     month_labels = []
     monthly_totals = []
-    monthly_dict = {item['month'].strftime('%Y-%m'): float(item['total']) for item in monthly_expenses}
-
     for i in range(5, -1, -1):
         month_date = selected_date - relativedelta(months=i)
         month_key = month_date.strftime('%Y-%m')
@@ -123,62 +96,28 @@ def dashboard(request):
         monthly_totals.append(monthly_dict.get(month_key, 0))
 
     monthly_income_qs = Income.objects.filter(user=user, date__gte=start_date)
-    monthly_income_data = (
-        monthly_income_qs
-        .annotate(month=TruncMonth('date'))
-        .values('month')
-        .annotate(total=Sum('amount'))
-        .order_by('month')
-    )
+    monthly_income_data = monthly_income_qs.annotate(month=TruncMonth('date')).values('month').annotate(total=Sum('amount')).order_by('month')
     income_dict = {item['month'].strftime('%Y-%m'): float(item['total']) for item in monthly_income_data}
-    monthly_income_totals = []
-    for i in range(5, -1, -1):
-        month_date = selected_date - relativedelta(months=i)
-        month_key = month_date.strftime('%Y-%m')
-        monthly_income_totals.append(income_dict.get(month_key, 0))
+    monthly_income_totals = [income_dict.get((selected_date - relativedelta(months=i)).strftime('%Y-%m'), 0) for i in range(5, -1, -1)]
 
-    daily_expenses = (
-        expenses_qs
-        .annotate(day=TruncDay('date'))
-        .values('day')
-        .annotate(total=Sum('amount'))
-        .order_by('day')
-    )
+    daily_expenses = expenses_qs.annotate(day=TruncDay('date')).values('day').annotate(total=Sum('amount')).order_by('day')
     daily_dict = {item['day'].day: float(item['total']) for item in daily_expenses}
     days_in_month = (selected_date + relativedelta(day=31)).replace(day=1) - timedelta(days=1)
     daily_labels = list(range(1, days_in_month.day + 1))
     daily_totals = [daily_dict.get(day, 0) for day in daily_labels]
 
     last_year_date = selected_date - relativedelta(years=1)
-    last_year_spent = Expense.objects.filter(
-        user=user,
-        date__year=last_year_date.year,
-        date__month=last_year_date.month
-    ).aggregate(total=Sum('amount'))['total'] or 0
-    last_year_income = Income.objects.filter(
-        user=user,
-        date__year=last_year_date.year,
-        date__month=last_year_date.month
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    last_year_spent = Expense.objects.filter(user=user, date__year=last_year_date.year, date__month=last_year_date.month).aggregate(total=Sum('amount'))['total'] or 0
+    last_year_income = Income.objects.filter(user=user, date__year=last_year_date.year, date__month=last_year_date.month).aggregate(total=Sum('amount'))['total'] or 0
 
-    forecast_months = []
+    past_months = [(selected_date - relativedelta(months=i)) for i in range(1, 4)]
     forecast_values = []
-    for i in range(1, 4):
-        past_date = selected_date - relativedelta(months=i)
-        past_spent = Expense.objects.filter(
-            user=user,
-            date__year=past_date.year,
-            date__month=past_date.month
-        ).aggregate(total=Sum('amount'))['total'] or 0
+    forecast_months = []
+    for past_date in past_months:
+        spent = Expense.objects.filter(user=user, date__year=past_date.year, date__month=past_date.month).aggregate(total=Sum('amount'))['total'] or 0
         forecast_months.append(past_date.strftime('%b %Y'))
-        forecast_values.append(float(past_spent))
+        forecast_values.append(float(spent))
     forecast_next = sum(forecast_values) / len(forecast_values) if forecast_values else 0
-
-    category_budgets = {cb.category: cb.monthly_limit for cb in CategoryBudget.objects.filter(user=user)}
-    category_spending = {
-        item['category']: item['total']
-        for item in all_category_data
-    }
 
     category_budget_status = []
     for cat_code, cat_name in Expense.CATEGORY_CHOICES:
@@ -189,64 +128,35 @@ def dashboard(request):
             remaining = limit - spent
             over = spent > limit
         else:
-            percentage = 0
-            remaining = 0
+            percentage = remaining = 0
             over = False
         category_budget_status.append({
-            'category': cat_code,
-            'display': cat_name,
-            'spent': spent,
-            'limit': limit,
-            'percentage': percentage,
-            'remaining': remaining,
-            'over': over,
+            'category': cat_code, 'display': cat_name, 'spent': spent,
+            'limit': limit, 'percentage': percentage, 'remaining': remaining, 'over': over,
         })
 
-    prev_month = selected_date - relativedelta(months=1)
-    next_month = selected_date + relativedelta(months=1)
-
     active_goals = SavingsGoal.objects.filter(user=user, is_completed=False).order_by('-created_at')[:3]
-
-    today = now.date()
     upcoming_bills = Bill.objects.filter(
-        user=user,
-        is_paid=False,
-        due_date__gte=today,
-        due_date__lte=today + relativedelta(days=7)
+        user=user, is_paid=False, due_date__gte=now.date(),
+        due_date__lte=now.date() + relativedelta(days=7)
     ).order_by('due_date')
 
-    check_budget_alerts(user, total_spent, budget_limit)
+    check_budget_alerts(user, total_spent, budget_obj.monthly_limit)
     check_category_budget_alerts(user, category_spending, category_budgets)
     check_bill_reminders(user)
 
     context = {
-        'page_obj': page_obj,
-        'total_spent': total_spent,
-        'total_income': total_income,
-        'net_savings': net_savings,
-        'budget_limit': budget_limit,
-        'remaining': remaining_budget,
-        'over_budget': over_budget,
-        'categories': categories,
-        'amounts': amounts,
-        'month_labels': month_labels,
-        'monthly_totals': monthly_totals,
-        'monthly_income_totals': monthly_income_totals,
-        'current_month': selected_date,
-        'prev_month': prev_month,
-        'next_month': next_month,
-        'category_filter': category_filter,
-        'active_goals': active_goals,
-        'category_budget_status': category_budget_status,
-        'upcoming_bills': upcoming_bills,
-        'daily_labels': daily_labels,
-        'daily_totals': daily_totals,
-        'last_year_spent': float(last_year_spent),
-        'last_year_income': float(last_year_income),
-        'last_year_month': last_year_date.strftime('%B %Y'),
-        'forecast_months': forecast_months,
-        'forecast_values': forecast_values,
-        'forecast_next': forecast_next,
+        'page_obj': page_obj, 'total_spent': total_spent, 'total_income': total_income,
+        'net_savings': net_savings, 'budget_limit': budget_obj.monthly_limit, 'remaining': remaining_budget,
+        'over_budget': over_budget, 'categories': categories, 'amounts': amounts,
+        'month_labels': month_labels, 'monthly_totals': monthly_totals, 'monthly_income_totals': monthly_income_totals,
+        'current_month': selected_date, 'prev_month': selected_date - relativedelta(months=1),
+        'next_month': selected_date + relativedelta(months=1), 'category_filter': category_filter,
+        'active_goals': active_goals, 'category_budget_status': category_budget_status,
+        'upcoming_bills': upcoming_bills, 'daily_labels': daily_labels, 'daily_totals': daily_totals,
+        'last_year_spent': float(last_year_spent), 'last_year_income': float(last_year_income),
+        'last_year_month': last_year_date.strftime('%B %Y'), 'forecast_months': forecast_months,
+        'forecast_values': forecast_values, 'forecast_next': forecast_next,
     }
     return render(request, 'tracker/dashboard.html', context)
 
@@ -327,8 +237,7 @@ def manage_category_budgets(request):
         return redirect('manage_category_budgets')
 
     return render(request, 'tracker/category_budgets.html', {
-        'category_budgets': category_budgets,
-        'categories': categories,
+        'category_budgets': category_budgets, 'categories': categories
     })
 
 
@@ -336,27 +245,19 @@ def manage_category_budgets(request):
 def export_csv(request):
     user = request.user
     now = timezone.now()
-
     year = request.GET.get('year')
     month = request.GET.get('month')
     category_filter = request.GET.get('category', '').strip()
-
     if year and month:
         try:
-            year = int(year)
-            month = int(month)
+            year, month = int(year), int(month)
             selected_date = datetime(year, month, 1).date()
         except (ValueError, TypeError):
             selected_date = now.date().replace(day=1)
     else:
         selected_date = now.date().replace(day=1)
 
-    expenses = Expense.objects.filter(
-        user=user,
-        date__year=selected_date.year,
-        date__month=selected_date.month
-    ).order_by('-date')
-
+    expenses = Expense.objects.filter(user=user, date__year=selected_date.year, date__month=selected_date.month).order_by('-date')
     if category_filter:
         expenses = expenses.filter(category__iexact=category_filter)
 
@@ -366,25 +267,19 @@ def export_csv(request):
         filename += f"_{category_filter.lower()}"
     filename += ".csv"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
     writer = csv.writer(response)
     writer.writerow(['Title', 'Amount', 'Category', 'Date'])
-
     for expense in expenses:
-        writer.writerow([
-            expense.title,
-            str(expense.amount),
-            expense.category,
-            expense.date.strftime('%Y-%m-%d')
-        ])
-
+        writer.writerow([expense.title, str(expense.amount), expense.category, expense.date.strftime('%Y-%m-%d')])
     return response
 
 
 @login_required
 def recurring_list(request):
     recurrings = RecurringExpense.objects.filter(user=request.user).order_by('-is_active', 'next_due')
-    return render(request, 'tracker/recurring_list.html', {'recurrings': recurrings})
+    paginator = Paginator(recurrings, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'tracker/recurring_list.html', {'page_obj': page_obj})
 
 
 @login_required
@@ -440,7 +335,9 @@ def recurring_toggle(request, pk):
 @login_required
 def goal_list(request):
     goals = SavingsGoal.objects.filter(user=request.user).order_by('-is_completed', '-created_at')
-    return render(request, 'tracker/goal_list.html', {'goals': goals})
+    paginator = Paginator(goals, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'tracker/goal_list.html', {'page_obj': page_obj})
 
 
 @login_required
@@ -502,11 +399,9 @@ def goal_contribute(request, pk):
             if goal.current_amount >= goal.target_amount:
                 goal.is_completed = True
                 create_notification(
-                    request.user,
-                    f"Goal Achieved: {goal.title}",
+                    request.user, f"Goal Achieved: {goal.title}",
                     f"Congratulations! You've reached your savings goal of ${goal.target_amount:.2f}.",
-                    'goal_achieved',
-                    f'/goals/{goal.pk}/'
+                    'goal_achieved', f'/goals/{goal.pk}/'
                 )
             goal.save()
             messages.success(request, f'Added ${contribution.amount} to "{goal.title}".')
@@ -519,7 +414,9 @@ def goal_contribute(request, pk):
 @login_required
 def income_list(request):
     incomes = Income.objects.filter(user=request.user).order_by('-date')
-    return render(request, 'tracker/income_list.html', {'incomes': incomes})
+    paginator = Paginator(incomes, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'tracker/income_list.html', {'page_obj': page_obj})
 
 
 @login_required
@@ -565,7 +462,6 @@ def income_delete(request, pk):
 def generate_report(request):
     user = request.user
     now = timezone.now()
-
     year = request.GET.get('year')
     month = request.GET.get('month')
     report_type = request.GET.get('type', 'monthly')
@@ -585,8 +481,7 @@ def generate_report(request):
     else:
         if year and month:
             try:
-                year = int(year)
-                month = int(month)
+                year, month = int(year), int(month)
                 selected_date = datetime(year, month, 1).date()
             except (ValueError, TypeError):
                 selected_date = now.date().replace(day=1)
@@ -607,11 +502,7 @@ def generate_report(request):
     total_expenses = expenses_qs.aggregate(total=Sum('amount'))['total'] or 0
     net_savings = total_income - total_expenses
 
-    category_data = (
-        expenses_qs.values('category')
-        .annotate(total=Sum('amount'))
-        .order_by('-total')
-    )
+    category_data = expenses_qs.values('category').annotate(total=Sum('amount')).order_by('-total')
     categories = [item['category'] for item in category_data]
     amounts = [float(item['total']) for item in category_data]
 
@@ -626,64 +517,35 @@ def generate_report(request):
                 remaining = limit - spent
                 over = spent > limit
             else:
-                percentage = 0
-                remaining = 0
+                percentage = remaining = 0
                 over = False
             category_budget_status.append({
-                'category': cat_code,
-                'display': cat_name,
-                'spent': spent,
-                'limit': limit,
-                'percentage': percentage,
-                'remaining': remaining,
-                'over': over,
+                'category': cat_code, 'display': cat_name, 'spent': spent,
+                'limit': limit, 'percentage': percentage, 'remaining': remaining, 'over': over,
             })
 
     top_expenses = expenses_qs.order_by('-amount')[:10]
-
     current_year = now.year
     years_range = range(current_year - 5, current_year + 1)
-
-    months = [
-        {'value': 1, 'name': 'January'},
-        {'value': 2, 'name': 'February'},
-        {'value': 3, 'name': 'March'},
-        {'value': 4, 'name': 'April'},
-        {'value': 5, 'name': 'May'},
-        {'value': 6, 'name': 'June'},
-        {'value': 7, 'name': 'July'},
-        {'value': 8, 'name': 'August'},
-        {'value': 9, 'name': 'September'},
-        {'value': 10, 'name': 'October'},
-        {'value': 11, 'name': 'November'},
-        {'value': 12, 'name': 'December'},
-    ]
+    months = [{'value': i, 'name': datetime(2000, i, 1).strftime('%B')} for i in range(1, 13)]
 
     context = {
-        'report_type': report_type,
-        'period_label': period_label,
-        'start_date': start_date,
-        'end_date': end_date,
-        'total_income': total_income,
-        'total_expenses': total_expenses,
-        'net_savings': net_savings,
-        'categories': categories,
-        'amounts': amounts,
-        'category_budget_status': category_budget_status,
-        'top_expenses': top_expenses,
-        'selected_year': start_date.year,
+        'report_type': report_type, 'period_label': period_label,
+        'total_income': total_income, 'total_expenses': total_expenses, 'net_savings': net_savings,
+        'categories': categories, 'amounts': amounts, 'category_budget_status': category_budget_status,
+        'top_expenses': top_expenses, 'selected_year': start_date.year,
         'selected_month': start_date.month if report_type == 'monthly' else None,
-        'years_range': years_range,
-        'months': months,
+        'years_range': years_range, 'months': months,
     }
     return render(request, 'tracker/report.html', context)
 
 
-# ----- Bill Reminders Views -----
 @login_required
 def bill_list(request):
     bills = Bill.objects.filter(user=request.user).order_by('is_paid', 'due_date')
-    return render(request, 'tracker/bill_list.html', {'bills': bills})
+    paginator = Paginator(bills, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'tracker/bill_list.html', {'page_obj': page_obj})
 
 
 @login_required
@@ -735,11 +597,12 @@ def bill_mark_paid(request, pk):
     return render(request, 'tracker/bill_mark_paid.html', {'bill': bill})
 
 
-# ----- Notifications Views -----
 @login_required
 def notification_list(request):
-    notifications = Notification.objects.filter(user=request.user)
-    return render(request, 'tracker/notification_list.html', {'notifications': notifications})
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    paginator = Paginator(notifications, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'tracker/notification_list.html', {'page_obj': page_obj})
 
 
 @login_required
@@ -758,23 +621,19 @@ def mark_all_read(request):
     return redirect('notification_list')
 
 
-# ----- User Profile & Settings -----
 @login_required
 def profile(request):
-    user = request.user
-    profile_obj, created = UserProfile.objects.get_or_create(user=user)
+    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
     return render(request, 'tracker/profile.html', {'profile': profile_obj})
 
 
 @login_required
 def profile_edit(request):
     user = request.user
-    profile_obj, created = UserProfile.objects.get_or_create(user=user)
-
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=user)
         profile_form = UserProfileForm(request.POST, request.FILES, instance=profile_obj)
-
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
@@ -783,11 +642,7 @@ def profile_edit(request):
     else:
         user_form = UserUpdateForm(instance=user)
         profile_form = UserProfileForm(instance=profile_obj)
-
-    return render(request, 'tracker/profile_edit.html', {
-        'user_form': user_form,
-        'profile_form': profile_form,
-    })
+    return render(request, 'tracker/profile_edit.html', {'user_form': user_form, 'profile_form': profile_form})
 
 
 @login_required
@@ -819,7 +674,6 @@ def delete_account(request):
     return render(request, 'tracker/delete_account.html', {'form': form})
 
 
-# ----- Currency Quick Change -----
 @login_required
 def set_currency(request):
     if request.method == 'POST':

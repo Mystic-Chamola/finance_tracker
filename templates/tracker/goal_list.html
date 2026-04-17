@@ -7,9 +7,9 @@
 </div>
 
 <div class="content-card glass">
-    {% if goals %}
+    {% if page_obj %}
         <div class="goals-grid">
-            {% for goal in goals %}
+            {% for goal in page_obj %}
             <div class="goal-card">
                 <div class="goal-header">
                     <h3>{{ goal.title }}</h3>
@@ -32,6 +32,7 @@
             </div>
             {% endfor %}
         </div>
+        {% include 'tracker/pagination.html' %}
     {% else %}
         <div class="empty-state">
             <p>🎯 No savings goals yet.</p>

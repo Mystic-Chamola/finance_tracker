@@ -7,7 +7,7 @@
 </div>
 
 <div class="content-card glass">
-    {% if incomes %}
+    {% if page_obj %}
         <table class="modern-table">
             <thead>
                 <tr>
@@ -19,7 +19,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for income in incomes %}
+                {% for income in page_obj %}
                 <tr>
                     <td>{{ income.title }}</td>
                     <td>{{ income.amount|format_currency:user_currency }}</td>
@@ -36,6 +36,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% include 'tracker/pagination.html' %}
     {% else %}
         <div class="empty-state">
             <p>💰 No income recorded yet.</p>

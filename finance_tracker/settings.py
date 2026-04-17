@@ -126,9 +126,22 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
 }
-# At the bottom of settings.py
 import sys
 
+if 'test' in sys.argv or 'pytest' in sys.modules:
+    DEBUG = True
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m]
+# Caching (local memory for development, use Redis in production)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Test-specific settings
+import sys
 if 'test' in sys.argv or 'pytest' in sys.modules:
     DEBUG = True
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
