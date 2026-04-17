@@ -854,7 +854,19 @@ footer {
     display: block !important;
     visibility: visible !important;
 }
+
 /* Hide fallback header row when thead exists and is visible */
-table:has(thead:not([style*="display: none"])) tbody tr.fallback-header {
+table:has(thead) tbody tr.fallback-header-row {
     display: none !important;
+}
+
+/* Style fallback row to look like headers */
+tbody tr.fallback-header-row td {
+    background-color: var(--table-header-bg) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 2px solid var(--border) !important;
 }

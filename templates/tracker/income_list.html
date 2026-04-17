@@ -19,6 +19,14 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- FALLBACK HEADER ROW (hidden by CSS if thead is present) -->
+                <tr class="fallback-header-row">
+                    <td>Title</td>
+                    <td>Amount</td>
+                    <td>Category</td>
+                    <td>Date</td>
+                    <td>Actions</td>
+                </tr>
                 {% for income in incomes %}
                 <tr>
                     <td>{{ income.title }}</td>
