@@ -1,13 +1,14 @@
-from django.conf import settings
-from django.http import HttpResponseForbidden
+import logging
 
-class AdminIPRestrictionMiddleware:
+logger = logging.getLogger(__name__)
+
+class ExceptionLoggingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path.startswith('/admin/'):
-            ip = request.META.get('REMOTE_ADDR')
-            if ip not in settings.ADMIN_IP_WHITELIST:
-                return HttpResponseForbidden("Access denied.")
         return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        logger.exception(f"Unhandled exception on {request.path}: {exception}")
+        return None

@@ -43,6 +43,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'csp.middleware.CSPMiddleware',
+    'tracker.middleware.ExceptionLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'finance_tracker.urls'
@@ -214,3 +215,49 @@ if 'test' in sys.argv or 'pytest' in sys.modules:
     DEBUG = True
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m]
+
+# Custom error handlers
+handler404 = 'tracker.views.custom_404'
+handler500 = 'tracker.views.custom_500'
+handler403 = 'tracker.views.custom_403'
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'errors.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'tracker': {
+            'handlers': ['file', 'console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
