@@ -1059,3 +1059,76 @@ textarea:focus {
         backdrop-filter: none;
     }
 }
+/* ===== MOBILE JANK FIXES ===== */
+
+/* Prevent body scroll when menus are open (optional) */
+body.menu-open {
+    overflow: hidden;
+}
+
+/* Ensure all scrollable containers have momentum scrolling */
+.content-card,
+.income-list,
+.bills-list,
+.recurring-list,
+.goals-list,
+.expense-section,
+.analytics-section,
+.chart-container,
+.notification-dropdown,
+.nav-menu {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+}
+
+/* Increase tap target sizes for interactive elements */
+.btn,
+.icon-btn,
+.nav-menu a,
+.nav-menu button,
+.currency-selector select,
+.notification-bell,
+.theme-toggle {
+    min-height: 44px;      /* Apple recommended minimum */
+    min-width: 44px;
+}
+
+/* Exception for icon buttons inside tables (keep compact) */
+.actions-cell .icon-btn {
+    min-height: 36px;
+    min-width: 36px;
+}
+
+/* Fix any remaining horizontal overflow */
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+}
+
+/* Ensure images and media don't cause overflow */
+img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Make form inputs easier to tap */
+input, select, textarea {
+    font-size: 16px;        /* Prevents iOS zoom on focus */
+    padding: 12px 14px;
+}
+
+/* Prevent fixed navbar from shifting when keyboard opens */
+@media (max-width: 768px) {
+    .navbar {
+        position: sticky;
+    }
+    body {
+        padding-top: 0;
+    }
+}
+
+/* Smooth scrolling for the whole page */
+html {
+    scroll-behavior: smooth;
+}
