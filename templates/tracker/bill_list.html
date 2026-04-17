@@ -21,18 +21,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Duplicate fallback header (hidden when thead exists) -->
-                <thead class="fallback-thead">
-                    <tr>
-                        <th>Title</th>
-                        <th>Amount</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th>Recurring</th>
-                        <th>Reminder</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
                 {% for bill in bills %}
                 <tr class="{% if bill.is_due_soon and not bill.is_paid %}due-soon-row{% endif %}">
                     <td>{{ bill.title }}</td>

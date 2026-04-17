@@ -21,18 +21,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Duplicate fallback header -->
-                <thead class="fallback-thead">
-                    <tr>
-                        <th>Title</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Interval</th>
-                        <th>Next Due</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
                 {% for rec in recurrings %}
                 <tr class="{% if not rec.is_active %}inactive{% endif %}">
                     <td>{{ rec.title }}</td>

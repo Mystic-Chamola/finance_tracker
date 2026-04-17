@@ -19,16 +19,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Duplicate fallback header (hidden when thead exists) -->
-                <thead class="fallback-thead">
-                    <tr>
-                        <th>Title</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
                 {% for income in incomes %}
                 <tr>
                     <td>{{ income.title }}</td>
