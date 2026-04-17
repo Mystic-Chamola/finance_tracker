@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 {% block content %}
-<div class="page-header">
+<div class="page-header glass">
     <h1>Manage Category Budgets</h1>
 </div>
 
-<div class="form-container wide">
+<div class="form-container glass" style="max-width: 700px;">
     <p class="help-text">Set monthly spending limits for each category. Leave zero for no limit.</p>
     <form method="post">
         {% csrf_token %}
@@ -29,7 +29,7 @@
         </table>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save All Budgets</button>
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Cancel</a>
         </div>
     </form>
     <p class="help-text">Amounts entered in {{ user_currency }} will be converted to USD for tracking.</p>

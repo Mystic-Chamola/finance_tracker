@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="confirm-delete">
-    <h2>Delete Account</h2>
-    <p class="warning-text">This action is permanent and cannot be undone. All your data will be permanently deleted.</p>
-    
+<div class="page-header glass">
+    <h1>Delete Account</h1>
+</div>
+
+<div class="form-container glass">
+    <p class="warning-text" style="color: var(--danger);">This action is permanent and cannot be undone. All your data will be permanently deleted.</p>
     <form method="post">
         {% csrf_token %}
         <div class="checkbox-group">
@@ -12,7 +14,7 @@
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-danger">Permanently Delete My Account</button>
-            <a href="{% url 'profile' %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'profile' %}" class="btn btn-outline">Cancel</a>
         </div>
     </form>
 </div>

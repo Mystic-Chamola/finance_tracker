@@ -2,92 +2,82 @@
 {% load static %}
 {% load currency_filters %}
 {% block content %}
-<div class="report-header">
+<div class="page-header glass">
     <h1>Financial Report</h1>
     <div class="report-controls">
         <form method="get" class="report-form">
-            <select name="type" id="report-type">
+            <select name="type" id="report-type" class="glass-select">
                 <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly</option>
                 <option value="yearly" {% if report_type == 'yearly' %}selected{% endif %}>Yearly</option>
             </select>
-            <select name="year" id="year-select">
+            <select name="year" id="year-select" class="glass-select">
                 {% for y in years_range %}
                 <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
                 {% endfor %}
             </select>
-            <select name="month" id="month-select" {% if report_type == 'yearly' %}disabled{% endif %}>
+            <select name="month" id="month-select" class="glass-select" {% if report_type == 'yearly' %}disabled{% endif %}>
                 {% for m in months %}
                 <option value="{{ m.value }}" {% if selected_month == m.value %}selected{% endif %}>{{ m.name }}</option>
                 {% endfor %}
             </select>
             <button type="submit" class="btn btn-primary">Generate</button>
         </form>
-        <button onclick="window.print()" class="btn btn-secondary">🖨️ Print / Save PDF</button>
+        <button onclick="window.print()" class="btn btn-outline">🖨️ Print / Save PDF</button>
     </div>
 </div>
 
-<div class="report-period">
+<div class="report-period glass" style="text-align: center; padding: 16px; margin-bottom: 20px;">
     <h2>{{ period_label }}</h2>
 </div>
 
 <div class="summary-cards">
-    <div class="card">
+    <div class="card glass">
         <h3>💰 Total Income</h3>
         <p class="amount">{{ total_income|format_currency:user_currency }}</p>
     </div>
-    <div class="card">
+    <div class="card glass">
         <h3>📉 Total Expenses</h3>
         <p class="amount">{{ total_expenses|format_currency:user_currency }}</p>
     </div>
-    <div class="card">
+    <div class="card glass">
         <h3>🏦 Net Savings</h3>
         <p class="amount {% if net_savings < 0 %}negative{% endif %}">{{ net_savings|format_currency:user_currency }}</p>
     </div>
 </div>
 
-<!-- Category Breakdown Chart -->
-<div class="analytics-section printable-chart">
-    <h3>Expense Categories</h3>
-    <div class="chart-container">
-        <canvas id="reportCategoryChart"></canvas>
+<div class="charts-container">
+    <div class="chart-card glass">
+        <h3>Expense Categories</h3>
+        <div class="chart-wrapper">
+            <canvas id="reportCategoryChart"></canvas>
+        </div>
     </div>
+    {% if report_type == 'monthly' and category_budget_status %}
+    <div class="chart-card glass">
+        <h3>Category Budget Performance</h3>
+        <div class="category-budgets-grid" style="max-height: 300px; overflow-y: auto;">
+            {% for item in category_budget_status %}
+                {% if item.limit > 0 %}
+                <div class="category-budget-card {% if item.over %}over-budget{% endif %}" style="background: var(--bg-primary); padding: 12px; border-radius: var(--border-radius-md); margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>{{ item.display }}</span>
+                        <span>{{ item.spent|format_currency:user_currency }} / {{ item.limit|format_currency:user_currency }}</span>
+                    </div>
+                    <div class="progress-bar-container small">
+                        <div class="progress-bar {% if item.over %}danger{% endif %}" style="width: {{ item.percentage }}%;"></div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
-<!-- Category Budget Status (only for monthly) -->
-{% if report_type == 'monthly' and category_budget_status %}
-<div class="analytics-section">
-    <h3>Category Budget Performance</h3>
-    <div class="category-budgets-grid">
-        {% for item in category_budget_status %}
-            {% if item.limit > 0 %}
-            <div class="category-budget-card {% if item.over %}over-budget{% endif %}">
-                <div class="category-header">
-                    <span class="category-name">{{ item.display }}</span>
-                    <span class="category-amounts">{{ item.spent|format_currency:user_currency }} / {{ item.limit|format_currency:user_currency }}</span>
-                </div>
-                <div class="progress-bar-container small">
-                    <div class="progress-bar {% if item.over %}danger{% endif %}" style="width: {{ item.percentage }}%;"></div>
-                </div>
-                <div class="category-footer">
-                    <span>{{ item.percentage|floatformat:0 }}% used</span>
-                    {% if item.over %}
-                        <span class="warning">Over by {{ item.remaining|format_currency:user_currency }}</span>
-                    {% else %}
-                        <span>{{ item.remaining|format_currency:user_currency }} left</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<!-- Top Expenses Table -->
-<div class="expense-list">
+<div class="expense-section glass">
     <h3>Top 10 Expenses</h3>
     {% if top_expenses %}
-        <table>
+        <table class="modern-table">
             <thead>
                 <tr>
                     <th>Title</th>
@@ -108,40 +98,29 @@
             </tbody>
         </table>
     {% else %}
-        <p>No expenses recorded in this period.</p>
+        <p class="empty-state">No expenses recorded in this period.</p>
     {% endif %}
 </div>
 
 <script>
-    // Category Pie Chart
     const ctx = document.getElementById('reportCategoryChart').getContext('2d');
     new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: {{ categories|safe }},
             datasets: [{
-                label: 'Spending by Category',
                 data: {{ amounts|safe }},
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
-                ],
-                borderWidth: 1
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'],
+                borderWidth: 0
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { position: 'bottom' },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => ctx.label + ': ' + ctx.parsed.toFixed(2)
-                    }
-                }
-            }
+            cutout: '60%',
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 
-    // Handle month select enable/disable based on report type
     const typeSelect = document.getElementById('report-type');
     const monthSelect = document.getElementById('month-select');
     typeSelect.addEventListener('change', function() {
