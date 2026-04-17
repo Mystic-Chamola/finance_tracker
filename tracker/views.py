@@ -1,4 +1,5 @@
 import csv
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash, logout
@@ -12,6 +13,7 @@ from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django_ratelimit.decorators import ratelimit
 
 from .models import (
     Expense, Budget, RecurringExpense, SavingsGoal, SavingsContribution,
@@ -23,6 +25,10 @@ from .forms import (
     BillForm, UserProfileForm, UserUpdateForm, CustomPasswordChangeForm, DeleteAccountForm
 )
 from .utils import create_notification, check_budget_alerts, check_category_budget_alerts, check_bill_reminders
+from .audit import log_audit
+
+# Set up logging for audit trail
+audit_logger = logging.getLogger('tracker.audit')
 
 
 # ============================================================
@@ -74,9 +80,10 @@ class NotificationListView(PaginatedListView):
 
 
 # ============================================================
-# AUTHENTICATION
+# AUTHENTICATION (with rate limiting)
 # ============================================================
 
+@ratelimit(key='ip', rate='5/m', block=True)
 def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -84,6 +91,7 @@ def register(request):
             user = form.save()
             Budget.objects.create(user=user, monthly_limit=0)
             UserProfile.objects.create(user=user, preferred_currency='USD')
+            log_audit(user, 'USER_REGISTERED', f'Email: {user.email}')
             messages.success(request, 'Registration successful. You can now log in.')
             return redirect('login')
     else:
@@ -233,6 +241,7 @@ def add_expense(request):
             expense = form.save(commit=False)
             expense.user = request.user
             expense.save()
+            log_audit(request.user, 'EXPENSE_ADDED', f'Title: {expense.title}, Amount: {expense.amount}')
             messages.success(request, 'Expense added successfully.')
             return redirect('dashboard')
     else:
@@ -247,6 +256,7 @@ def edit_expense(request, pk):
         form = ExpenseForm(request.POST, instance=expense)
         if form.is_valid():
             form.save()
+            log_audit(request.user, 'EXPENSE_UPDATED', f'ID: {pk}')
             messages.success(request, 'Expense updated successfully.')
             return redirect('dashboard')
     else:
@@ -258,6 +268,7 @@ def edit_expense(request, pk):
 def delete_expense(request, pk):
     expense = get_object_or_404(Expense, pk=pk, user=request.user)
     if request.method == 'POST':
+        log_audit(request.user, 'EXPENSE_DELETED', f'ID: {pk}')
         expense.delete()
         messages.success(request, 'Expense deleted.')
         return redirect('dashboard')
@@ -275,6 +286,7 @@ def set_budget(request):
         form = BudgetForm(request.POST, instance=budget_obj)
         if form.is_valid():
             form.save()
+            log_audit(request.user, 'BUDGET_UPDATED', f'Limit: {budget_obj.monthly_limit}')
             messages.success(request, 'Global budget updated.')
             return redirect('dashboard')
     else:
@@ -301,6 +313,7 @@ def manage_category_budgets(request):
                     budget.save()
                 except ValueError:
                     pass
+        log_audit(request.user, 'CATEGORY_BUDGETS_UPDATED')
         messages.success(request, 'Category budgets updated.')
         return redirect('manage_category_budgets')
 
@@ -343,6 +356,7 @@ def export_csv(request):
     writer.writerow(['Title', 'Amount', 'Category', 'Date'])
     for expense in expenses:
         writer.writerow([expense.title, str(expense.amount), expense.category, expense.date.strftime('%Y-%m-%d')])
+    log_audit(request.user, 'EXPORT_CSV', f'Period: {selected_date.strftime("%Y-%m")}')
     return response
 
 
@@ -359,6 +373,7 @@ def recurring_add(request):
             recurring.user = request.user
             recurring.next_due = recurring.start_date
             recurring.save()
+            log_audit(request.user, 'RECURRING_ADDED', f'Title: {recurring.title}')
             messages.success(request, 'Recurring expense added.')
             return redirect('recurring_list')
     else:
@@ -373,6 +388,7 @@ def recurring_edit(request, pk):
         form = RecurringExpenseForm(request.POST, instance=recurring)
         if form.is_valid():
             form.save()
+            log_audit(request.user, 'RECURRING_UPDATED', f'ID: {pk}')
             messages.success(request, 'Recurring expense updated.')
             return redirect('recurring_list')
     else:
@@ -384,6 +400,7 @@ def recurring_edit(request, pk):
 def recurring_delete(request, pk):
     recurring = get_object_or_404(RecurringExpense, pk=pk, user=request.user)
     if request.method == 'POST':
+        log_audit(request.user, 'RECURRING_DELETED', f'ID: {pk}')
         recurring.delete()
         messages.success(request, 'Recurring expense deleted.')
         return redirect('recurring_list')
@@ -396,6 +413,7 @@ def recurring_toggle(request, pk):
     recurring.is_active = not recurring.is_active
     recurring.save()
     status = 'activated' if recurring.is_active else 'deactivated'
+    log_audit(request.user, f'RECURRING_{status.upper()}', f'ID: {pk}')
     messages.success(request, f'Recurring expense {status}.')
     return redirect('recurring_list')
 
@@ -412,6 +430,7 @@ def goal_add(request):
             goal = form.save(commit=False)
             goal.user = request.user
             goal.save()
+            log_audit(request.user, 'GOAL_ADDED', f'Title: {goal.title}')
             messages.success(request, 'Savings goal created.')
             return redirect('goal_list')
     else:
@@ -426,6 +445,7 @@ def goal_edit(request, pk):
         form = SavingsGoalForm(request.POST, instance=goal)
         if form.is_valid():
             form.save()
+            log_audit(request.user, 'GOAL_UPDATED', f'ID: {pk}')
             messages.success(request, 'Goal updated.')
             return redirect('goal_list')
     else:
@@ -437,6 +457,7 @@ def goal_edit(request, pk):
 def goal_delete(request, pk):
     goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
     if request.method == 'POST':
+        log_audit(request.user, 'GOAL_DELETED', f'ID: {pk}')
         goal.delete()
         messages.success(request, 'Goal deleted.')
         return redirect('goal_list')
@@ -468,6 +489,7 @@ def goal_contribute(request, pk):
                     'goal_achieved', f'/goals/{goal.pk}/'
                 )
             goal.save()
+            log_audit(request.user, 'GOAL_CONTRIBUTION', f'Goal: {goal.title}, Amount: {contribution.amount}')
             messages.success(request, f'Added ${contribution.amount} to "{goal.title}".')
             return redirect('goal_detail', pk=goal.pk)
     else:
@@ -487,6 +509,7 @@ def income_add(request):
             income = form.save(commit=False)
             income.user = request.user
             income.save()
+            log_audit(request.user, 'INCOME_ADDED', f'Title: {income.title}, Amount: {income.amount}')
             messages.success(request, 'Income added successfully.')
             return redirect('income_list')
     else:
@@ -501,6 +524,7 @@ def income_edit(request, pk):
         form = IncomeForm(request.POST, instance=income)
         if form.is_valid():
             form.save()
+            log_audit(request.user, 'INCOME_UPDATED', f'ID: {pk}')
             messages.success(request, 'Income updated.')
             return redirect('income_list')
     else:
@@ -512,6 +536,7 @@ def income_edit(request, pk):
 def income_delete(request, pk):
     income = get_object_or_404(Income, pk=pk, user=request.user)
     if request.method == 'POST':
+        log_audit(request.user, 'INCOME_DELETED', f'ID: {pk}')
         income.delete()
         messages.success(request, 'Income deleted.')
         return redirect('income_list')
@@ -530,6 +555,7 @@ def bill_add(request):
             bill = form.save(commit=False)
             bill.user = request.user
             bill.save()
+            log_audit(request.user, 'BILL_ADDED', f'Title: {bill.title}')
             messages.success(request, 'Bill added successfully.')
             return redirect('bill_list')
     else:
@@ -544,6 +570,7 @@ def bill_edit(request, pk):
         form = BillForm(request.POST, instance=bill)
         if form.is_valid():
             form.save()
+            log_audit(request.user, 'BILL_UPDATED', f'ID: {pk}')
             messages.success(request, 'Bill updated.')
             return redirect('bill_list')
     else:
@@ -555,6 +582,7 @@ def bill_edit(request, pk):
 def bill_delete(request, pk):
     bill = get_object_or_404(Bill, pk=pk, user=request.user)
     if request.method == 'POST':
+        log_audit(request.user, 'BILL_DELETED', f'ID: {pk}')
         bill.delete()
         messages.success(request, 'Bill deleted.')
         return redirect('bill_list')
@@ -566,6 +594,7 @@ def bill_mark_paid(request, pk):
     bill = get_object_or_404(Bill, pk=pk, user=request.user)
     if request.method == 'POST':
         bill.mark_paid_and_create_next()
+        log_audit(request.user, 'BILL_MARKED_PAID', f'Title: {bill.title}')
         messages.success(request, f'Bill "{bill.title}" marked as paid.')
         return redirect('bill_list')
     return render(request, 'tracker/bill_mark_paid.html', {'bill': bill})
@@ -580,9 +609,7 @@ def mark_notification_read(request, pk):
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
     notification.is_read = True
     notification.save()
-    if notification.link:
-        return redirect(notification.link)
-    return redirect('notification_list')
+    return redirect(notification.link) if notification.link else redirect('notification_list')
 
 
 @login_required
@@ -698,6 +725,7 @@ def profile_edit(request):
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
+            log_audit(request.user, 'PROFILE_UPDATED')
             messages.success(request, 'Your profile has been updated successfully.')
             return redirect('profile')
     else:
@@ -713,6 +741,7 @@ def change_password(request):
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)
+            log_audit(request.user, 'PASSWORD_CHANGED')
             messages.success(request, 'Your password has been changed successfully.')
             return redirect('profile')
     else:
@@ -726,6 +755,7 @@ def delete_account(request):
         form = DeleteAccountForm(request.POST)
         if form.is_valid():
             user = request.user
+            log_audit(user, 'ACCOUNT_DELETED')
             logout(request)
             user.delete()
             messages.success(request, 'Your account has been permanently deleted.')
@@ -747,5 +777,6 @@ def set_currency(request):
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
             profile.preferred_currency = currency_code
             profile.save()
+            log_audit(request.user, f'CURRENCY_CHANGED', f'New: {currency_code}')
             messages.success(request, f'Currency changed to {currency_code}.')
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))

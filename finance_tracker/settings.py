@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'django_filters',
+    'axes',
     'tracker',
 ]
 SITE_ID = 1
@@ -38,8 +39,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware', 
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'csp.middleware.CSPMiddleware',
 ]
 
 ROOT_URLCONF = 'finance_tracker.urls'
@@ -61,6 +64,71 @@ TEMPLATES = [
         },
     },
 ]
+# ===== Security Headers & Settings =====
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# HSTS (only if using HTTPS)
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# ===== Content Security Policy (CSP) =====
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'", "https://fonts.googleapis.com", "'unsafe-inline'")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
+CSP_SCRIPT_SRC = ("'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'")
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+CSP_CONNECT_SRC = ("'self'",)
+CSP_FRAME_ANCESTORS = ("'none'",)
+CSP_REPORT_URI = ("/csp-report/",)  # optional endpoint
+
+# ===== Axes Configuration (Brute-Force Protection) =====
+AXES_FAILURE_LIMIT = 5               # lockout after 5 failed attempts
+AXES_COOLOFF_TIME = 1                # hours until reset
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
+AXES_RESET_ON_SUCCESS = True
+AXES_ENABLE_ADMIN = True             # also protect admin login
+
+# ===== Rate Limiting (django-ratelimit) =====
+# Applied via decorators in views
+
+# ===== Admin Hardening =====
+# Rename admin URL in urls.py (see below)
+# Optional: restrict admin by IP
+ADMIN_IP_WHITELIST = ['127.0.0.1', '::1']  # add your IPs
+
+# ===== Audit Logging (simple) =====
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'audit.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'tracker.audit': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 
 WSGI_APPLICATION = 'finance_tracker.wsgi.application'
 

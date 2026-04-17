@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from . import views
+from django_ratelimit.decorators import ratelimit
+from .import views
 from .views import (
     IncomeListView, BillListView, RecurringListView, GoalListView, NotificationListView
 )
@@ -8,7 +9,7 @@ from .views import (
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('register/', views.register, name='register'),
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('login/', ratelimit(key='ip', rate='10/m', block=True)(auth_views.LoginView.as_view(template_name='registration/login.html')), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('add/', views.add_expense, name='add_expense'),
     path('edit/<int:pk>/', views.edit_expense, name='edit_expense'),

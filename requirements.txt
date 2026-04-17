@@ -14,3 +14,7 @@ pytest-django==4.10.0
 pytest-cov==6.2.1
 factory-boy==3.3.3
 coverage==7.8.0
+django-ratelimit==4.1.0
+django-csp==3.8
+django-axes==6.5.1
+django-encrypted-model-fields==1.0.1  # optional
