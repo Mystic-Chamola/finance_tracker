@@ -1430,134 +1430,47 @@ footer {
 }
 
 /* ===== Mobile Stability & Centering Fixes ===== */
-@media (max-width: 768px) {
-    body {
-        padding-top: 60px;
-    }
-
-    .navbar {
-        padding: 0.75rem 1.5rem;
-    }
-
-    .hamburger {
-        display: flex;
-    }
-
-    .nav-menu {
-        position: fixed;
-        left: -100%;
-        top: 65px;
-        flex-direction: column;
-        background-color: var(--navbar-bg);
-        width: 100%;
-        text-align: center;
-        transition: 0.3s ease;
-        box-shadow: var(--card-shadow);
-        padding: 1.5rem 0 2rem;
-        gap: 1.2rem;
-        z-index: 5;
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
-        max-height: calc(100vh - 65px);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .nav-menu.active {
-        left: 0;
-    }
-
-    .nav-menu li {
-        margin: 0.25rem 0;
-    }
-
-    .nav-menu li:last-child {
-        margin-bottom: 0.5rem;
-    }
-
-    .dashboard-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .month-navigation {
-        justify-content: space-between;
-    }
-
-    .summary-cards {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        gap: 1rem;
-    }
-
-    .summary-cards .card {
-        width: 100%;
-        max-width: 350px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .expense-list-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .header-actions {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .search-input {
-        width: 100%;
-    }
-
-    .search-input:focus {
-        width: 100%;
-    }
-
-    table {
+@media (max-width: 600px) {
+    table, thead, tbody, th, td, tr {
         display: block;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
     }
 
-    .card .amount {
-        font-size: 2rem;
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
     }
 
-    .form-container, .auth-container {
-        padding: 1.8rem;
-        margin: 1.5rem;
+    tr {
+        border: 1px solid var(--border);
+        border-radius: var(--border-radius-sm);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: var(--bg-secondary);
     }
 
-    .current-amount {
-        font-size: 2.2rem;
+    td {
+        border: none;
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        padding-left: 40%;
+        white-space: normal;
+        text-align: right;
     }
 
-    .notification-dropdown {
-        position: fixed;
-        top: 60px;
-        left: 10px;
-        right: 10px;
-        width: auto;
-        max-width: none;
+    td:before {
+        position: absolute;
+        left: 1rem;
+        width: 35%;
+        padding-right: 1rem;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        content: attr(data-label);
     }
-}
 
-/* ===== Additional Polish ===== */
-html {
-    scroll-behavior: smooth;
-}
-
-::selection {
-    background: var(--accent);
-    color: white;
-}
-
-:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    td:last-child {
+        border-bottom: none;
+    }
 }
