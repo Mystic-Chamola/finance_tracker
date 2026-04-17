@@ -915,3 +915,52 @@ body.dark-mode .card .amount,
 body.dark-mode .goal-amounts {
     color: var(--text-primary) !important;
 }
+/* ===== Fix: Align card content to top ===== */
+.card,
+.goal-card,
+.category-budget-card,
+.bill-item,
+.notification-item,
+.notification-item-full,
+.analytics-section,
+.goals-widget .goal-card,
+.profile-card,
+.settings-card {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+}
+
+/* Restore centered text for summary cards if desired, but keep top alignment */
+.summary-cards .card {
+    text-align: center !important;
+    align-items: center !important;
+}
+
+.summary-cards .card h3,
+.summary-cards .card .amount {
+    text-align: center !important;
+}
+
+/* Ensure headings have proper margin */
+.card h3,
+.goal-card h3,
+.category-budget-card .category-name,
+.bill-item .bill-title,
+.notification-item .notification-title {
+    margin-top: 0 !important;
+    margin-bottom: 0.75rem !important;
+    width: 100% !important;
+}
+
+/* Fix progress bars and meta info */
+.progress-bar-container,
+.goal-meta,
+.category-footer,
+.bill-meta,
+.notification-meta {
+    margin-top: auto !important;
+    width: 100% !important;
+}
