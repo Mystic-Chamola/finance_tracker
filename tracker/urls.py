@@ -49,4 +49,6 @@ urlpatterns = [
     path('profile/delete/', views.delete_account, name='delete_account'),
     # Currency
     path('set-currency/', views.set_currency, name='set_currency'),
+
+    path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
 ]
