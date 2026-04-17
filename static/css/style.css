@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   Mobile‑First, Table Scroll + Row Visibility Fix
+   Mobile‑First, Table Scroll, Row Visibility, Button Alignment
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ===== TABLES – HORIZONTAL SCROLL + ROW VISIBILITY ===== */
+/* ===== TABLES – HORIZONTAL SCROLL + ROW VISIBILITY + BUTTON FIX ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -500,7 +500,15 @@ td {
     padding: 1rem 1rem !important;
     border-bottom: 1px solid var(--border);
     color: var(--text-primary) !important;
-    vertical-align: middle;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+/* Action buttons inside table cells stay inline */
+td form,
+td .btn,
+td a.btn {
+    display: inline-flex !important;
     white-space: nowrap !important;
 }
 
@@ -827,26 +835,9 @@ footer {
     opacity: 1 !important;
     visibility: visible !important;
 }
-/* ===== ULTIMATE TABLE ROW VISIBILITY ===== */
-table tbody tr {
-    display: table-row !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    background-color: transparent !important;
-}
 
-table tbody td {
-    display: table-cell !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    color: var(--text-primary) !important;
-    padding: 1rem !important;
-    border-bottom: 1px solid var(--border) !important;
-}
-
-/* Force empty state message to be visible */
-.empty-state, .empty-state p {
+/* Empty state visibility */
+.empty-state {
     display: block !important;
     visibility: visible !important;
-    opacity: 1 !important;
 }
