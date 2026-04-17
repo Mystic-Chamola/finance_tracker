@@ -827,3 +827,26 @@ footer {
     opacity: 1 !important;
     visibility: visible !important;
 }
+/* ===== ULTIMATE TABLE ROW VISIBILITY ===== */
+table tbody tr {
+    display: table-row !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: transparent !important;
+}
+
+table tbody td {
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: var(--text-primary) !important;
+    padding: 1rem !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+/* Force empty state message to be visible */
+.empty-state, .empty-state p {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
