@@ -803,3 +803,115 @@ p, span, div, h1, h2, h3, h4, h5, h6, td, th, li, a {
 .goal-detail-header {
     flex-wrap: wrap;
 }
+/* ===== FORCE CONTENT VISIBILITY (Override any hiding styles) ===== */
+
+/* Ensure all text elements have proper color and opacity */
+.card,
+.goal-card,
+.category-budget-card,
+.bill-item,
+.notification-item,
+.notification-item-full,
+.analytics-section,
+.expense-list,
+.income-list,
+.bills-list,
+.recurring-list,
+.goals-widget,
+.profile-card,
+.settings-card,
+.contributions-section,
+.report-period,
+.form-container,
+.auth-container,
+.confirm-delete,
+.amount,
+.goal-amounts,
+.bill-amount,
+.notification-message,
+td,
+th,
+p,
+span,
+h1, h2, h3, h4, h5, h6,
+a,
+.category-name,
+.goal-title,
+.bill-title,
+.notification-title {
+    color: var(--text-primary) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block;  /* Force block display for containers that might be inline */
+}
+
+/* Exception: keep inline elements inline */
+a, span, .btn, .badge, .category-link, button {
+    display: inline-block;
+}
+
+/* Restore proper display for flex/grid containers */
+.summary-cards,
+.goals-grid,
+.category-budgets-grid,
+.nav-menu,
+.dashboard-header,
+.widget-header,
+.section-header,
+.page-header,
+.goal-detail-header,
+.header-actions,
+.pagination {
+    display: flex;
+}
+
+.summary-cards,
+.goals-grid,
+.category-budgets-grid {
+    display: grid;
+}
+
+/* Ensure table cells are table-cell */
+td, th {
+    display: table-cell;
+}
+
+/* Ensure list items are list-item */
+li {
+    display: list-item;
+}
+
+/* Remove any max-height or overflow restrictions */
+.card,
+.goal-card,
+.category-budget-card,
+.bill-item,
+.notification-item,
+.analytics-section {
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+/* Fix potential text clipping */
+.card .amount,
+.goal-amounts .current,
+.goal-amounts .target,
+.bill-amount {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* Ensure dark mode text is readable */
+body.dark-mode .card,
+body.dark-mode .goals-widget,
+body.dark-mode .analytics-section {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .card .amount,
+body.dark-mode .goal-amounts {
+    color: var(--text-primary) !important;
+}
