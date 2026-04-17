@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   Mobile‑First, Table Scroll, Row Visibility, Button Alignment
+   Mobile‑First, Table Scroll + Wrap, All Fixes Included
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ===== TABLES – HORIZONTAL SCROLL + ROW VISIBILITY + BUTTON FIX ===== */
+/* ===== TABLES – SCROLL + WRAPPING + NO OVERLAP ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -447,41 +447,33 @@ a:hover {
     padding: 1.5rem;
     border: 1px solid var(--border);
     width: 100%;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    display: block !important;
+    display: block;
 }
 
 table {
-    width: max-content !important;
-    min-width: 100% !important;
+    width: 100%;
+    min-width: 700px;
     border-collapse: separate;
     border-spacing: 0;
-    table-layout: auto !important;
-}
-
-/* Force table elements to be visible */
-table, thead, tbody, tfoot, tr, th, td {
-    visibility: visible !important;
-    opacity: 1 !important;
+    table-layout: auto;
 }
 
 thead {
-    display: table-header-group !important;
+    display: table-header-group;
 }
 
 tbody {
-    display: table-row-group !important;
+    display: table-row-group;
 }
 
 tr {
-    display: table-row !important;
+    display: table-row;
 }
 
 th {
-    display: table-cell !important;
-    padding: 1rem 1rem !important;
+    padding: 1rem 0.75rem;
     border-bottom: 2px solid var(--border);
     color: var(--text-secondary);
     font-weight: 600;
@@ -492,29 +484,40 @@ th {
     position: sticky;
     top: 72px;
     z-index: 10;
-    white-space: nowrap !important;
+    white-space: nowrap;
+    text-align: left;
 }
 
 td {
-    display: table-cell !important;
-    padding: 1rem 1rem !important;
+    padding: 1rem 0.75rem;
     border-bottom: 1px solid var(--border);
-    color: var(--text-primary) !important;
-    vertical-align: middle !important;
-    white-space: nowrap !important;
+    color: var(--text-primary);
+    vertical-align: middle;
+    white-space: normal;
+    word-break: break-word;
+    max-width: 250px;
 }
 
-/* Action buttons inside table cells stay inline */
-td form,
-td .btn,
-td a.btn {
-    display: inline-flex !important;
-    white-space: nowrap !important;
-}
-
-th:last-child,
+/* Actions column – keep buttons inline */
 td:last-child {
-    padding-right: 1.5rem !important;
+    white-space: nowrap;
+    min-width: 160px;
+}
+
+td:last-child .btn,
+td:last-child form {
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
+/* Category link */
+.category-link {
+    display: inline-block;
+    padding: 0.2rem 0.75rem;
+    border-radius: 20px;
+    background: var(--accent-light);
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 tbody tr:hover {
@@ -529,15 +532,6 @@ tr.category-rent td:first-child { border-left: 4px solid #4BC0C0; }
 tr.category-shopping td:first-child { border-left: 4px solid #9966FF; }
 tr.category-utilities td:first-child { border-left: 4px solid #FF9F40; }
 tr.category-other td:first-child { border-left: 4px solid #C9CBCF; }
-
-.category-link {
-    display: inline-block;
-    padding: 0.2rem 0.75rem;
-    border-radius: 20px;
-    background: var(--accent-light);
-    font-weight: 500;
-    white-space: nowrap;
-}
 
 /* ----- Buttons ----- */
 .btn {
@@ -755,11 +749,11 @@ footer {
     }
 
     table {
-        padding-right: 1rem !important;
+        min-width: 700px;
     }
 
     th, td {
-        padding: 0.75rem 0.75rem !important;
+        padding: 0.75rem 0.5rem !important;
     }
 
     .form-container,
