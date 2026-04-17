@@ -50,7 +50,10 @@
             </tbody>
         </table>
     {% else %}
-        <p>No recurring expenses set up. <a href="{% url 'recurring_add' %}">Add one</a>.</p>
+        <div class="empty-state">
+            <p>🔄 No recurring expenses set up.</p>
+            <a href="{% url 'recurring_add' %}" class="btn btn-primary">Add One</a>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

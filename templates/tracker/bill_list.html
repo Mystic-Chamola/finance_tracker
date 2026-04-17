@@ -6,7 +6,7 @@
     <a href="{% url 'bill_add' %}" class="btn btn-primary">+ Add Bill</a>
 </div>
 
-<div class="bills-list full-width">
+<div class="bills-list">
     {% if bills %}
         <table>
             <thead>
@@ -40,7 +40,7 @@
                             —
                         {% endif %}
                     </td>
-                    <td>{{ bill.reminder_days_before }} days before</td>
+                    <td>{{ bill.reminder_days_before }} days</td>
                     <td>
                         {% if not bill.is_paid %}
                         <form action="{% url 'bill_mark_paid' bill.id %}" method="post" style="display: inline;">
@@ -59,7 +59,10 @@
             </tbody>
         </table>
     {% else %}
-        <p>No bills yet. <a href="{% url 'bill_add' %}">Add one</a>.</p>
+        <div class="empty-state">
+            <p>📅 No bills yet.</p>
+            <a href="{% url 'bill_add' %}" class="btn btn-primary">Add One</a>
+        </div>
     {% endif %}
 </div>
 {% endblock %}
