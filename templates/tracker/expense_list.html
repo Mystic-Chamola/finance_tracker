@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 {% block content %}
-<div class="page-header">
+<div class="page-header glass" style="padding: 16px 20px; margin-bottom: 20px;">
     <h1>Expenses</h1>
     <a href="{% url 'add_expense' %}" class="btn btn-primary">+ Add Expense</a>
 </div>
 
-<div class="expense-list">
+<div class="expense-list glass" style="padding: 20px;">
     {% if expenses %}
-        <table>
+        <table class="modern-table">
             <thead>
                 <tr>
                     <th>Title</th>
@@ -19,27 +19,17 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Duplicate fallback header -->
-                <thead class="fallback-thead">
-                    <tr>
-                        <th>Title</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
                 {% for expense in expenses %}
-                <tr class="category-{{ expense.category|lower }}">
+                <tr>
                     <td>{{ expense.title }}</td>
                     <td>{{ expense.amount|format_currency:user_currency }}</td>
                     <td>{{ expense.category }}</td>
                     <td>{{ expense.date|date:"M d, Y" }}</td>
-                    <td>
-                        <a href="{% url 'edit_expense' expense.id %}" class="btn btn-sm">Edit</a>
-                        <form action="{% url 'delete_expense' expense.id %}" method="post" style="display: inline;">
+                    <td class="actions-cell">
+                        <a href="{% url 'edit_expense' expense.id %}" class="icon-btn" title="Edit">✏️</a>
+                        <form action="{% url 'delete_expense' expense.id %}" method="post" class="inline-form">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this expense?')">Delete</button>
+                            <button type="submit" class="icon-btn" onclick="return confirm('Delete this expense?')" title="Delete">🗑️</button>
                         </form>
                     </td>
                 </tr>

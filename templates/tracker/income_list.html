@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 {% block content %}
-<div class="page-header">
+<div class="page-header glass" style="padding: 16px 20px; margin-bottom: 20px;">
     <h1>Income</h1>
     <a href="{% url 'income_add' %}" class="btn btn-primary">+ Add Income</a>
 </div>
 
-<div class="income-list glass">
+<div class="income-list glass" style="padding: 20px;">
     {% if incomes %}
         <table class="modern-table">
             <thead>
