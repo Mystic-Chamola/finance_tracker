@@ -1,6 +1,7 @@
 /* ============================================================
    FINANCE TRACKER – PREMIUM UI STYLES
    Mobile‑First, Dark Mode, Smooth Animations
+   All Visibility & Alignment Fixes Included
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -78,7 +79,7 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    padding-top: 72px;  /* Space for fixed navbar */
+    padding-top: 72px;
     overflow-x: hidden;
     width: 100%;
 }
@@ -431,7 +432,7 @@ table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 600px; /* Ensures horizontal scroll on mobile */
+    min-width: 600px;
 }
 
 th {
@@ -661,7 +662,6 @@ footer {
         margin: 0.25rem 0;
     }
 
-    /* Centered cards on mobile */
     .summary-cards {
         display: flex;
         flex-direction: column;
@@ -675,7 +675,6 @@ footer {
         margin: 0 auto;
     }
 
-    /* Horizontal scroll for tables */
     .expense-list,
     .income-list,
     .bills-list,
@@ -739,7 +738,9 @@ footer {
     }
 }
 
-/* ===== FIX: Prevent Content Clipping in Cards & Containers ===== */
+/* ===== CRITICAL FIXES ===== */
+
+/* 1. Prevent content clipping & ensure visibility */
 .card,
 .goal-card,
 .category-budget-card,
@@ -765,157 +766,7 @@ footer {
     max-height: none !important;
 }
 
-.goals-grid,
-.category-budgets-grid,
-.summary-cards {
-    align-items: start !important;
-}
-
-.expense-list,
-.income-list,
-.bills-list,
-.recurring-list {
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-}
-
-p, span, div, h1, h2, h3, h4, h5, h6, td, th, li, a {
-    max-width: 100%;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-.notification-item,
-.notification-item-full,
-.bill-item {
-    display: block !important;
-    white-space: normal !important;
-}
-
-.chart-container {
-    overflow: visible !important;
-}
-
-.dashboard-header,
-.widget-header,
-.section-header,
-.page-header,
-.goal-detail-header {
-    flex-wrap: wrap;
-}
-/* ===== FORCE CONTENT VISIBILITY (Override any hiding styles) ===== */
-
-/* Ensure all text elements have proper color and opacity */
-.card,
-.goal-card,
-.category-budget-card,
-.bill-item,
-.notification-item,
-.notification-item-full,
-.analytics-section,
-.expense-list,
-.income-list,
-.bills-list,
-.recurring-list,
-.goals-widget,
-.profile-card,
-.settings-card,
-.contributions-section,
-.report-period,
-.form-container,
-.auth-container,
-.confirm-delete,
-.amount,
-.goal-amounts,
-.bill-amount,
-.notification-message,
-td,
-th,
-p,
-span,
-h1, h2, h3, h4, h5, h6,
-a,
-.category-name,
-.goal-title,
-.bill-title,
-.notification-title {
-    color: var(--text-primary) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block;  /* Force block display for containers that might be inline */
-}
-
-/* Exception: keep inline elements inline */
-a, span, .btn, .badge, .category-link, button {
-    display: inline-block;
-}
-
-/* Restore proper display for flex/grid containers */
-.summary-cards,
-.goals-grid,
-.category-budgets-grid,
-.nav-menu,
-.dashboard-header,
-.widget-header,
-.section-header,
-.page-header,
-.goal-detail-header,
-.header-actions,
-.pagination {
-    display: flex;
-}
-
-.summary-cards,
-.goals-grid,
-.category-budgets-grid {
-    display: grid;
-}
-
-/* Ensure table cells are table-cell */
-td, th {
-    display: table-cell;
-}
-
-/* Ensure list items are list-item */
-li {
-    display: list-item;
-}
-
-/* Remove any max-height or overflow restrictions */
-.card,
-.goal-card,
-.category-budget-card,
-.bill-item,
-.notification-item,
-.analytics-section {
-    max-height: none !important;
-    overflow: visible !important;
-    height: auto !important;
-    min-height: 0 !important;
-}
-
-/* Fix potential text clipping */
-.card .amount,
-.goal-amounts .current,
-.goal-amounts .target,
-.bill-amount {
-    white-space: normal !important;
-    word-break: break-word !important;
-    overflow-wrap: break-word !important;
-}
-
-/* Ensure dark mode text is readable */
-body.dark-mode .card,
-body.dark-mode .goals-widget,
-body.dark-mode .analytics-section {
-    color: var(--text-primary) !important;
-}
-
-body.dark-mode .card .amount,
-body.dark-mode .goal-amounts {
-    color: var(--text-primary) !important;
-}
-/* ===== Fix: Align card content to top ===== */
+/* 2. Align card content to top (not centered) */
 .card,
 .goal-card,
 .category-budget-card,
@@ -933,7 +784,7 @@ body.dark-mode .goal-amounts {
     text-align: left !important;
 }
 
-/* Restore centered text for summary cards if desired, but keep top alignment */
+/* Exception for summary cards (keep centered but top-aligned) */
 .summary-cards .card {
     text-align: center !important;
     align-items: center !important;
@@ -944,27 +795,7 @@ body.dark-mode .goal-amounts {
     text-align: center !important;
 }
 
-/* Ensure headings have proper margin */
-.card h3,
-.goal-card h3,
-.category-budget-card .category-name,
-.bill-item .bill-title,
-.notification-item .notification-title {
-    margin-top: 0 !important;
-    margin-bottom: 0.75rem !important;
-    width: 100% !important;
-}
-
-/* Fix progress bars and meta info */
-.progress-bar-container,
-.goal-meta,
-.category-footer,
-.bill-meta,
-.notification-meta {
-    margin-top: auto !important;
-    width: 100% !important;
-}
-/* ===== Fix: Table headers at top (reset table display) ===== */
+/* 3. Reset table display to native (fixes header position) */
 table,
 thead,
 tbody,
@@ -975,8 +806,6 @@ td {
     display: revert !important;
     flex: revert !important;
     grid: revert !important;
-    text-align: revert !important;
-    vertical-align: middle !important;
 }
 
 thead {
@@ -1003,11 +832,35 @@ td {
     vertical-align: middle !important;
 }
 
-/* Ensure table container doesn't become flex/grid */
+/* Ensure table containers are block */
 .expense-list,
 .income-list,
 .bills-list,
 .recurring-list,
 .contributions-section {
     display: block !important;
+}
+
+/* 4. Force all text to be visible */
+.card .amount,
+.goal-amounts .current,
+.goal-amounts .target,
+.bill-amount,
+td, th, p, span, h1, h2, h3, h4, h5, h6, a {
+    color: var(--text-primary) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+/* 5. Margin fixes for headings */
+.card h3,
+.goal-card h3,
+.category-budget-card .category-name,
+.bill-item .bill-title,
+.notification-item .notification-title {
+    margin-top: 0 !important;
+    margin-bottom: 0.75rem !important;
+    width: 100% !important;
 }
