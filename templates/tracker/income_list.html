@@ -19,14 +19,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- FALLBACK HEADER ROW (will be hidden by CSS if <thead> works, visible otherwise) -->
-                <tr class="fallback-header" style="display: none;">
-                    <td style="font-weight: 600; text-transform: uppercase; background: var(--table-header-bg); color: var(--text-secondary);">Title</td>
-                    <td style="font-weight: 600; text-transform: uppercase; background: var(--table-header-bg); color: var(--text-secondary);">Amount</td>
-                    <td style="font-weight: 600; text-transform: uppercase; background: var(--table-header-bg); color: var(--text-secondary);">Category</td>
-                    <td style="font-weight: 600; text-transform: uppercase; background: var(--table-header-bg); color: var(--text-secondary);">Date</td>
-                    <td style="font-weight: 600; text-transform: uppercase; background: var(--table-header-bg); color: var(--text-secondary);">Actions</td>
-                </tr>
                 {% for income in incomes %}
                 <tr>
                     <td>{{ income.title }}</td>
