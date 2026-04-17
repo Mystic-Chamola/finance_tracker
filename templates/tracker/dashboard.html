@@ -1,478 +1,189 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
+{% load static %}
 {% block content %}
-<div class="dashboard-header">
-    <h1>Dashboard</h1>
-    <div class="month-navigation">
-        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-sm">← Previous</a>
-        <span class="current-month">{{ current_month|date:"F Y" }}</span>
-        <a href="?year={{ next_month.year }}&month={{ next_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-sm">Next →</a>
-    </div>
-</div>
 
-{% if category_filter %}
-<div class="filter-indicator">
-    <p>Filtered by category: <strong>{{ category_filter }}</strong></p>
-    <a href="?year={{ current_month.year }}&month={{ current_month.month }}" class="btn btn-sm">Clear filter</a>
-</div>
-{% endif %}
-
-<div class="summary-cards">
-    <div class="card">
-        <h3>💰 Total Income</h3>
-        <p class="amount">{{ total_income|format_currency:user_currency }}</p>
-    </div>
-    <div class="card">
-        <h3>📉 Total Spent</h3>
-        <p class="amount">{{ total_spent|format_currency:user_currency }}</p>
-    </div>
-    <div class="card">
-        <h3>🏦 Net Savings</h3>
-        <p class="amount {% if net_savings < 0 %}negative{% endif %}">{{ net_savings|format_currency:user_currency }}</p>
-    </div>
-    <div class="card">
-        <h3>🎯 Budget Limit</h3>
-        <p class="amount">{{ budget_limit|format_currency:user_currency }}</p>
-    </div>
-    <div class="card {% if over_budget %}over-budget{% endif %}">
-        <h3>📊 Remaining</h3>
-        <p class="amount">{{ remaining|format_currency:user_currency }}</p>
-        {% if over_budget %}
-            <span class="warning">⚠️ Over Budget!</span>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Category Budgets Overview -->
-<div class="analytics-section">
-    <div class="section-header">
-        <h3>📊 Category Budgets ({{ current_month|date:"F Y" }})</h3>
-        <a href="{% url 'manage_category_budgets' %}" class="btn btn-sm">Manage</a>
-    </div>
-    <div class="category-budgets-grid">
-        {% for item in category_budget_status %}
-            {% if item.limit > 0 %}
-            <div class="category-budget-card {% if item.over %}over-budget{% endif %}">
-                <div class="category-header">
-                    <span class="category-name">{{ item.display }}</span>
-                    <span class="category-amounts">{{ item.spent|format_currency:user_currency }} / {{ item.limit|format_currency:user_currency }}</span>
-                </div>
-                <div class="progress-bar-container small">
-                    <div class="progress-bar {% if item.over %}danger{% endif %}" style="width: {{ item.percentage }}%;"></div>
-                </div>
-                <div class="category-footer">
-                    <span>{{ item.percentage|floatformat:0 }}% used</span>
-                    {% if item.over %}
-                        <span class="warning">Over by {{ item.remaining|format_currency:user_currency }}</span>
-                    {% else %}
-                        <span>{{ item.remaining|format_currency:user_currency }} left</span>
-                    {% endif %}
-                </div>
+{# --- CONSOLIDATED BALANCE CARD --- #}
+<div class="balance-bento">
+    <div class="balance-card glass">
+        <div class="balance-header">
+            <span class="balance-label">Total Balance</span>
+            <span class="balance-amount">{{ total_income|add:total_spent|default:0|format_currency:user_currency }}</span>
+        </div>
+        <div class="balance-details">
+            <div class="balance-item">
+                <span class="item-label">💰 Available</span>
+                <span class="item-value positive">{{ total_income|format_currency:user_currency }}</span>
             </div>
+            <div class="balance-item">
+                <span class="item-label">📉 Spent</span>
+                <span class="item-value negative">{{ total_spent|format_currency:user_currency }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# --- QUICK INSIGHTS / SPENDING ACTIVITY FEED --- #}
+<div class="insights-grid">
+    <div class="insight-card glass">
+        <div class="insight-icon">📊</div>
+        <div class="insight-content">
+            <h4>Monthly Overview</h4>
+            <p>You've spent <strong>{{ total_spent|format_currency:user_currency }}</strong> this month.</p>
+            {% if over_budget %}
+                <span class="badge danger">Over budget</span>
+            {% else %}
+                <span class="badge success">On track</span>
             {% endif %}
-        {% endfor %}
-    </div>
-    {% if not category_budget_status|length %}
-        <p class="empty-state">No category budgets set. <a href="{% url 'manage_category_budgets' %}">Set them up</a> to track spending by category.</p>
-    {% endif %}
-</div>
-
-<!-- Upcoming Bills Widget -->
-{% if upcoming_bills %}
-<div class="goals-widget">
-    <div class="widget-header">
-        <h3>📅 Upcoming Bills (Next 7 Days)</h3>
-        <a href="{% url 'bill_list' %}" class="btn btn-sm">View All</a>
-    </div>
-    <div class="bills-list">
-        {% for bill in upcoming_bills %}
-        <div class="bill-item {% if bill.is_due_soon %}due-soon{% endif %}">
-            <div class="bill-info">
-                <span class="bill-title">{{ bill.title }}</span>
-                <span class="bill-amount">{{ bill.amount|format_currency:user_currency }}</span>
-            </div>
-            <div class="bill-meta">
-                <span>Due: {{ bill.due_date|date:"M d, Y" }}</span>
-                <form action="{% url 'bill_mark_paid' bill.id %}" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-success">Mark Paid</button>
-                </form>
-            </div>
         </div>
-        {% endfor %}
     </div>
-</div>
-{% endif %}
-
-<!-- Savings Goals Widget -->
-{% if active_goals %}
-<div class="goals-widget">
-    <div class="widget-header">
-        <h3>🎯 Savings Goals</h3>
-        <a href="{% url 'goal_list' %}" class="btn btn-sm">View All</a>
-    </div>
-    <div class="goals-grid">
-        {% for goal in active_goals %}
-        <div class="goal-card">
-            <div class="goal-info">
-                <span class="goal-title">{{ goal.title }}</span>
-                <span class="goal-amounts">{{ goal.current_amount|format_currency:user_currency }} / {{ goal.target_amount|format_currency:user_currency }}</span>
-            </div>
-            <div class="progress-bar-container">
-                <div class="progress-bar" style="width: {{ goal.progress_percentage }}%;"></div>
-            </div>
-            <div class="goal-meta">
-                <span>{{ goal.progress_percentage|floatformat:0 }}% complete</span>
-                {% if goal.deadline %}
-                <span>Due: {{ goal.deadline|date:"M d, Y" }}</span>
-                {% endif %}
-            </div>
+    <div class="insight-card glass">
+        <div class="insight-icon">🎯</div>
+        <div class="insight-content">
+            <h4>Top Category</h4>
+            {% if categories %}
+                <p><strong>{{ categories.0 }}</strong> leads with {{ amounts.0|format_currency:user_currency }}</p>
+            {% else %}
+                <p>No spending yet</p>
+            {% endif %}
         </div>
-        {% endfor %}
     </div>
-</div>
-{% endif %}
-
-<!-- Monthly Trend Chart (Existing) -->
-<div class="analytics-section">
-    <h3>Spending & Income Trend (Last 6 Months) {% if category_filter %} - {{ category_filter }}{% endif %}</h3>
-    <div class="chart-container">
-        <canvas id="monthlyChart"></canvas>
-    </div>
-</div>
-
-<!-- ===== NEW: Daily Spending Bar Chart ===== -->
-<div class="analytics-section">
-    <h3>Daily Spending - {{ current_month|date:"F Y" }}</h3>
-    <div class="chart-container">
-        <canvas id="dailyChart"></canvas>
-    </div>
-</div>
-
-<!-- ===== NEW: Year-over-Year Comparison ===== -->
-<div class="analytics-section">
-    <h3>Year-over-Year Comparison</h3>
-    <div class="chart-container">
-        <canvas id="yoyChart"></canvas>
-    </div>
-    <p class="chart-hint">
-        {{ current_month|date:"F Y" }} vs {{ last_year_month }}
-    </p>
-</div>
-
-<!-- ===== NEW: Forecast ===== -->
-<div class="analytics-section">
-    <h3>Spending Forecast (Next Month)</h3>
-    <div class="chart-container">
-        <canvas id="forecastChart"></canvas>
-    </div>
-    <p class="chart-hint">
-        Based on 3‑month moving average. Forecasted: {{ forecast_next|format_currency:user_currency }}
-    </p>
-</div>
-
-<!-- Category Breakdown Chart -->
-<div class="analytics-section">
-    <h3>Spending by Category ({{ current_month|date:"F Y" }})</h3>
-    <div class="chart-container">
-        <canvas id="categoryChart"></canvas>
-    </div>
-    <p class="chart-hint">Click on a category segment to filter expenses.</p>
-</div>
-
-<!-- Expense Table -->
-<div class="expense-list">
-    <div class="expense-list-header">
-        <h2>Expenses for {{ current_month|date:"F Y" }}{% if category_filter %} - {{ category_filter }}{% endif %}</h2>
-        <div class="header-actions">
-            <input type="text" id="search-input" placeholder="Search expenses..." class="search-input">
-            <a href="{% url 'export_csv' %}?year={{ current_month.year }}&month={{ current_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-sm btn-export">
-                ⬇ Export to CSV
-            </a>
+    <div class="insight-card glass">
+        <div class="insight-icon">📅</div>
+        <div class="insight-content">
+            <h4>Upcoming Bills</h4>
+            <p>{{ upcoming_bills|length }} bill{{ upcoming_bills|length|pluralize }} due soon</p>
         </div>
+    </div>
+</div>
+
+{# --- MONTH NAVIGATION --- #}
+<div class="dashboard-header">
+    <h2>{{ current_month|date:"F Y" }}</h2>
+    <div class="month-navigation">
+        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}" class="btn btn-outline btn-sm">← Prev</a>
+        <a href="?year={{ next_month.year }}&month={{ next_month.month }}" class="btn btn-outline btn-sm">Next →</a>
+    </div>
+</div>
+
+{# --- CHARTS (SIMPLIFIED) --- #}
+<div class="charts-container">
+    <div class="chart-card glass">
+        <h3>Spending Trends</h3>
+        <div class="chart-wrapper">
+            <canvas id="spendingTrendChart"></canvas>
+        </div>
+        <p class="chart-insight">
+            {% if monthly_totals|length > 1 %}
+                {% if monthly_totals.0 > monthly_totals.1 %}📈 Up{% else %}📉 Down{% endif %} from last month
+            {% endif %}
+        </p>
+    </div>
+    <div class="chart-card glass">
+        <h3>Categories</h3>
+        <div class="chart-wrapper">
+            <canvas id="categoryDonutChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{# --- EXPENSE LIST WITH CATEGORY BUDGETS --- #}
+<div class="expense-section glass">
+    <div class="section-header">
+        <h3>Recent Transactions</h3>
+        <a href="{% url 'export_csv' %}?year={{ current_month.year }}&month={{ current_month.month }}" class="btn btn-sm btn-outline">Export</a>
     </div>
     {% if page_obj %}
-        <table id="expense-table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Amount</th>
-                    <th>Category</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expense in page_obj %}
-                <tr class="category-{{ expense.category|lower }}">
-                    <td class="expense-title">{{ expense.title }}</td>
-                    <td>{{ expense.amount|format_currency:user_currency }}</td>
-                    <td>
-                        <a href="?year={{ current_month.year }}&month={{ current_month.month }}&category={{ expense.category|urlencode }}" class="category-link">
-                            {{ expense.category }}
-                        </a>
-                    </td>
-                    <td>{{ expense.date|date:"M d, Y" }}</td>
-                    <td>
-                        <a href="{% url 'edit_expense' expense.id %}" class="btn btn-sm">Edit</a>
-                        <form action="{% url 'delete_expense' expense.id %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this expense?')">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
+        <div class="table-responsive">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in page_obj %}
+                    <tr>
+                        <td>{{ expense.title }}</td>
+                        <td class="amount-cell">{{ expense.amount|format_currency:user_currency }}</td>
+                        <td><span class="category-badge category-{{ expense.category|lower }}">{{ expense.category }}</span></td>
+                        <td>{{ expense.date|date:"M d" }}</td>
+                        <td class="actions-cell">
+                            <a href="{% url 'edit_expense' expense.id %}" class="icon-btn" title="Edit">✏️</a>
+                            <form action="{% url 'delete_expense' expense.id %}" method="post" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn" onclick="return confirm('Delete?')" title="Delete">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% if page_obj.has_other_pages %}
         <div class="pagination">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&year={{ current_month.year }}&month={{ current_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-sm">&laquo; Prev</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline">←</a>
             {% endif %}
-            <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&year={{ current_month.year }}&month={{ current_month.month }}{% if category_filter %}&category={{ category_filter|urlencode }}{% endif %}" class="btn btn-sm">Next &raquo;</a>
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline">→</a>
             {% endif %}
         </div>
         {% endif %}
     {% else %}
         <div class="empty-state">
-            <p>📭 No expenses recorded for this month.</p>
-            <a href="{% url 'add_expense' %}" class="btn btn-primary">Add Your First Expense</a>
+            <p>No expenses this month. <a href="{% url 'add_expense' %}">Add one</a>.</p>
         </div>
     {% endif %}
 </div>
 
 <script>
-    // Monthly Trend Line Chart (Expenses + Income)
-    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(monthlyCtx, {
+    // Simplified spending trend (line chart)
+    const trendCtx = document.getElementById('spendingTrendChart').getContext('2d');
+    new Chart(trendCtx, {
         type: 'line',
         data: {
             labels: {{ month_labels|safe }},
-            datasets: [
-                {
-                    label: 'Expenses',
-                    data: {{ monthly_totals|safe }},
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#ef4444',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    tension: 0.3,
-                    fill: true
-                },
-                {
-                    label: 'Income',
-                    data: {{ monthly_income_totals|safe }},
-                    borderColor: '#22c55e',
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#22c55e',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    tension: 0.3,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: true, position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: (value) => value
-                    }
-                }
-            }
-        }
-    });
-
-    // ===== NEW: Daily Spending Bar Chart =====
-    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
-    new Chart(dailyCtx, {
-        type: 'bar',
-        data: {
-            labels: {{ daily_labels|safe }},
             datasets: [{
-                label: 'Daily Spending',
-                data: {{ daily_totals|safe }},
-                backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                label: 'Spending',
+                data: {{ monthly_totals|safe }},
                 borderColor: '#2563eb',
-                borderWidth: 1,
-                borderRadius: 4,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `Spent: ${ctx.parsed.y.toFixed(2)}`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: (value) => value
-                    }
-                }
-            }
-        }
-    });
-
-    // ===== NEW: Year-over-Year Comparison =====
-    const yoyCtx = document.getElementById('yoyChart').getContext('2d');
-    new Chart(yoyCtx, {
-        type: 'bar',
-        data: {
-            labels: ['{{ last_year_month }}', '{{ current_month|date:"F Y" }}'],
-            datasets: [
-                {
-                    label: 'Expenses',
-                    data: [{{ last_year_spent }}, {{ total_spent }}],
-                    backgroundColor: '#ef4444',
-                    borderRadius: 4,
-                },
-                {
-                    label: 'Income',
-                    data: [{{ last_year_income }}, {{ total_income }}],
-                    backgroundColor: '#22c55e',
-                    borderRadius: 4,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                }
-            }
-        }
-    });
-
-    // ===== NEW: Forecast Chart =====
-    const forecastCtx = document.getElementById('forecastChart').getContext('2d');
-    const forecastLabels = {{ forecast_months|safe }};
-    const forecastData = {{ forecast_values|safe }};
-    // Add forecasted next month
-    forecastLabels.push('Forecast (Next Month)');
-    forecastData.push({{ forecast_next }});
-
-    new Chart(forecastCtx, {
-        type: 'line',
-        data: {
-            labels: forecastLabels,
-            datasets: [{
-                label: 'Monthly Spending',
-                data: forecastData,
-                borderColor: '#8b5cf6',
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                borderWidth: 3,
-                pointBackgroundColor: '#8b5cf6',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
+                backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                borderWidth: 2,
+                pointBackgroundColor: '#2563eb',
                 tension: 0.2,
-                fill: true,
-                segment: {
-                    borderDash: (ctx) => ctx.p0DataIndex >= forecastData.length - 2 ? [6, 4] : undefined,
-                }
+                fill: true
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                }
-            }
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
         }
     });
 
-    // Category Pie Chart with click handler
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    const categoryChart = new Chart(categoryCtx, {
-        type: 'pie',
+    // Category donut chart
+    const donutCtx = document.getElementById('categoryDonutChart').getContext('2d');
+    new Chart(donutCtx, {
+        type: 'doughnut',
         data: {
             labels: {{ categories|safe }},
             datasets: [{
-                label: 'Spending by Category',
                 data: {{ amounts|safe }},
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
-                ],
-                borderWidth: 1
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'],
+                borderWidth: 0
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { position: 'bottom' },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => ctx.label + ': ' + ctx.parsed.toFixed(2)
-                    }
-                }
-            },
-            onClick: (event, item) => {
-                if (item.length > 0) {
-                    const index = item[0].index;
-                    const category = categoryChart.data.labels[index];
-                    const currentUrl = new URL(window.location.href);
-                    currentUrl.searchParams.set('category', category);
-                    window.location.href = currentUrl.toString();
-                }
-            }
+            cutout: '60%',
+            plugins: { legend: { position: 'bottom' } }
         }
-    });
-
-    // Client-side search filter
-    document.getElementById('search-input').addEventListener('keyup', function() {
-        const filter = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#expense-table tbody tr');
-        rows.forEach(row => {
-            const title = row.querySelector('.expense-title').textContent.toLowerCase();
-            const category = row.querySelector('.category-link').textContent.toLowerCase();
-            if (title.includes(filter) || category.includes(filter)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
     });
 </script>
 {% endblock %}
