@@ -19,14 +19,16 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- FALLBACK HEADER ROW (hidden by CSS if thead is present) -->
-                <tr class="fallback-header-row">
-                    <td>Title</td>
-                    <td>Amount</td>
-                    <td>Category</td>
-                    <td>Date</td>
-                    <td>Actions</td>
-                </tr>
+                <!-- Duplicate fallback header (hidden when thead exists) -->
+                <thead class="fallback-thead">
+                    <tr>
+                        <th>Title</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
                 {% for income in incomes %}
                 <tr>
                     <td>{{ income.title }}</td>

@@ -19,14 +19,16 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- FALLBACK HEADER ROW -->
-                <tr class="fallback-header-row">
-                    <td>Title</td>
-                    <td>Amount</td>
-                    <td>Category</td>
-                    <td>Date</td>
-                    <td>Actions</td>
-                </tr>
+                <!-- Duplicate fallback header -->
+                <thead class="fallback-thead">
+                    <tr>
+                        <th>Title</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
                 {% for expense in expenses %}
                 <tr class="category-{{ expense.category|lower }}">
                     <td>{{ expense.title }}</td>

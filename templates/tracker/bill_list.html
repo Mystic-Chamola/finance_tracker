@@ -21,16 +21,18 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- FALLBACK HEADER ROW -->
-                <tr class="fallback-header-row">
-                    <td>Title</td>
-                    <td>Amount</td>
-                    <td>Due Date</td>
-                    <td>Status</td>
-                    <td>Recurring</td>
-                    <td>Reminder</td>
-                    <td>Actions</td>
-                </tr>
+                <!-- Duplicate fallback header -->
+                <thead class="fallback-thead">
+                    <tr>
+                        <th>Title</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Recurring</th>
+                        <th>Reminder</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
                 {% for bill in bills %}
                 <tr class="{% if bill.is_due_soon and not bill.is_paid %}due-soon-row{% endif %}">
                     <td>{{ bill.title }}</td>

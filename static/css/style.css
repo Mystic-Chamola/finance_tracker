@@ -855,13 +855,13 @@ footer {
     visibility: visible !important;
 }
 
-/* Hide fallback header row when thead exists and is visible */
-table:has(thead) tbody tr.fallback-header-row {
+/* Hide duplicate fallback thead when real thead exists */
+table:has(thead) tbody thead.fallback-thead {
     display: none !important;
 }
 
-/* Style fallback row to look like headers */
-tbody tr.fallback-header-row td {
+/* Ensure fallback thead matches styling */
+tbody thead.fallback-thead th {
     background-color: var(--table-header-bg) !important;
     color: var(--text-secondary) !important;
     font-weight: 600 !important;
