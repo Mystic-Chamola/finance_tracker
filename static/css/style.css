@@ -954,3 +954,91 @@ input:focus, select:focus, textarea:focus {
         backdrop-filter: none;
     }
 }
+/* Unified content card (used on list pages) */
+.content-card {
+    padding: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+
+/* Wide form container for category budgets */
+.form-container.wide {
+    max-width: 700px;
+}
+
+/* Goals grid adjustments */
+.goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+.goal-card {
+    background: var(--bg-base);
+    padding: 18px;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--glass-border);
+}
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.goal-amounts {
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+}
+.goal-amounts .current {
+    font-weight: 700;
+    color: var(--accent);
+}
+.goal-amounts .target {
+    color: var(--text-secondary);
+}
+.progress-bar-container {
+    height: 8px;
+    background: var(--border);
+    border-radius: 20px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 20px;
+}
+.goal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Notification full item */
+.notification-item-full {
+    display: block;
+    padding: 16px;
+    border-bottom: 1px solid var(--glass-border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+.notification-item-full.unread {
+    background: var(--accent-light);
+    border-left: 4px solid var(--accent);
+}
+.notification-item-full:hover {
+    background: var(--bg-base);
+}
+.notification-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}

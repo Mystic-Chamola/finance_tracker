@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 {% block content %}
-<div class="page-header glass" style="padding: 16px 20px; margin-bottom: 20px;">
+<div class="page-header glass">
     <h1>Bills & Reminders</h1>
     <a href="{% url 'bill_add' %}" class="btn btn-primary">+ Add Bill</a>
 </div>
 
-<div class="bills-list glass" style="padding: 20px;">
+<div class="content-card glass">
     {% if bills %}
         <table class="modern-table">
             <thead>

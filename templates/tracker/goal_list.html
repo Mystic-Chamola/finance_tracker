@@ -1,28 +1,28 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 {% block content %}
-<div class="page-header glass" style="padding: 16px 20px; margin-bottom: 20px;">
+<div class="page-header glass">
     <h1>Savings Goals</h1>
     <a href="{% url 'goal_add' %}" class="btn btn-primary">+ New Goal</a>
 </div>
 
-<div class="goals-list glass" style="padding: 20px;">
+<div class="content-card glass">
     {% if goals %}
-        <div class="goals-grid" style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+        <div class="goals-grid">
             {% for goal in goals %}
-            <div class="goal-card" style="background: var(--bg-primary); padding: 18px; border-radius: var(--border-radius-lg); border: 1px solid var(--glass-border);">
-                <div class="goal-header" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <h3 style="margin: 0;">{{ goal.title }}</h3>
+            <div class="goal-card">
+                <div class="goal-header">
+                    <h3>{{ goal.title }}</h3>
                     {% if goal.is_completed %}<span class="badge success">Completed</span>{% endif %}
                 </div>
-                <div class="goal-amounts" style="margin-bottom: 12px;">
-                    <span style="font-weight: 600;">{{ goal.current_amount|format_currency:user_currency }}</span>
-                    <span style="color: var(--text-secondary);"> / {{ goal.target_amount|format_currency:user_currency }}</span>
+                <div class="goal-amounts">
+                    <span class="current">{{ goal.current_amount|format_currency:user_currency }}</span>
+                    <span class="target"> / {{ goal.target_amount|format_currency:user_currency }}</span>
                 </div>
-                <div class="progress-bar-container" style="height: 8px; background: var(--border); border-radius: 20px; margin-bottom: 12px;">
-                    <div class="progress-bar" style="width: {{ goal.progress_percentage }}%; height: 100%; background: var(--accent); border-radius: 20px;"></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ goal.progress_percentage }}%;"></div>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="goal-actions">
                     <a href="{% url 'goal_detail' goal.id %}" class="btn btn-sm btn-outline">Details</a>
                     <a href="{% url 'goal_contribute' goal.id %}" class="btn btn-sm btn-primary">Add Money</a>
                     {% if not goal.is_completed %}

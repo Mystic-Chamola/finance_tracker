@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 {% block content %}
-<div class="page-header glass" style="padding: 16px 20px; margin-bottom: 20px;">
+<div class="page-header glass">
     <h1>Recurring Expenses</h1>
     <a href="{% url 'recurring_add' %}" class="btn btn-primary">+ Add Recurring</a>
 </div>
 
-<div class="recurring-list glass" style="padding: 20px;">
+<div class="content-card glass">
     {% if recurrings %}
         <table class="modern-table">
             <thead>
