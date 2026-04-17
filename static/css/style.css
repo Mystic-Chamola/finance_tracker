@@ -1,6 +1,6 @@
 /* ============================================================
    FINANCE TRACKER – FINAL PREMIUM UI
-   All Fixes Included: Headers, Scrolling, Wrapping, Visibility
+   All Fixes: Headers, First Row, Scrolling, Wrapping, Visibility
    ============================================================ */
 
 /* ----- CSS Variables (Light Theme) ----- */
@@ -435,7 +435,7 @@ a:hover {
     height: auto !important;
 }
 
-/* ===== TABLES – HORIZONTAL SCROLL + HEADERS + NO OVERLAP ===== */
+/* ===== TABLES – ALL FIXES ===== */
 .expense-list,
 .income-list,
 .bills-list,
@@ -451,7 +451,7 @@ a:hover {
     -webkit-overflow-scrolling: touch;
     display: block;
     isolation: isolate;
-    transform: translateZ(0);
+    scroll-padding-top: 100px;   /* Prevents sticky header from covering content */
 }
 
 table {
@@ -463,7 +463,7 @@ table {
     background-color: var(--bg-secondary);
 }
 
-/* Force headers to always display */
+/* Force headers always visible */
 thead {
     display: table-header-group !important;
 }
@@ -485,6 +485,19 @@ th {
     z-index: 10;
     white-space: nowrap !important;
     text-align: left !important;
+}
+
+/* Fix: first row not hidden behind sticky header */
+tbody::before {
+    content: '';
+    display: table-row;
+    height: 0;
+}
+
+tbody tr:first-child td {
+    padding-top: 1.5rem !important;
+    position: relative;
+    z-index: 5;
 }
 
 tbody {
