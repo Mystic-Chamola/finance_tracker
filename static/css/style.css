@@ -835,3 +835,36 @@ footer {
     display: block !important;
     visibility: visible !important;
 }
+/* ===== PREVENT TEXT BLEED-THROUGH ===== */
+.expense-list,
+.income-list,
+.bills-list,
+.recurring-list,
+.contributions-section,
+table,
+thead,
+tbody,
+tr,
+th,
+td {
+    background-color: var(--bg-secondary) !important;
+    isolation: isolate;
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure table container creates a stacking context */
+.expense-list,
+.income-list,
+.bills-list,
+.recurring-list {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+/* If there's any stray text outside the table, hide it */
+.container > :not(.expense-list):not(.income-list):not(.bills-list):not(.recurring-list):not(.page-header):not(.dashboard-header) {
+    /* This is a broad rule; adjust if needed */
+    position: relative;
+    z-index: 0;
+}
