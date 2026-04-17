@@ -868,3 +868,20 @@ td {
     position: relative;
     z-index: 0;
 }
+/* ===== RESTORE TABLE HEADERS ===== */
+th {
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: var(--text-secondary) !important;
+    background-color: var(--table-header-bg) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    padding: 1rem 0.75rem !important;
+    border-bottom: 2px solid var(--border) !important;
+    white-space: nowrap !important;
+}
+
+thead {
+    display: table-header-group !important;
+}
