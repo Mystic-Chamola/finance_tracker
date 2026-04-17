@@ -74,12 +74,24 @@ class ExpenseForm(forms.ModelForm):
         if not self.instance.pk:
             self.initial['date'] = timezone.now().date()
 
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount < 0:
+            raise forms.ValidationError('Amount cannot be negative.')
+        return amount
+
 
 class BudgetForm(forms.ModelForm):
     class Meta:
         model = Budget
         fields = ['monthly_limit']
         labels = {'monthly_limit': 'Monthly Budget Limit'}
+
+    def clean_monthly_limit(self):
+        limit = self.cleaned_data.get('monthly_limit')
+        if limit is not None and limit < 0:
+            raise forms.ValidationError('Budget limit cannot be negative.')
+        return limit
 
 
 class CategoryBudgetForm(forms.ModelForm):
@@ -89,6 +101,12 @@ class CategoryBudgetForm(forms.ModelForm):
         widgets = {
             'monthly_limit': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
         }
+
+    def clean_monthly_limit(self):
+        limit = self.cleaned_data.get('monthly_limit')
+        if limit is not None and limit < 0:
+            raise forms.ValidationError('Budget limit cannot be negative.')
+        return limit
 
 
 class RecurringExpenseForm(forms.ModelForm):
@@ -104,6 +122,12 @@ class RecurringExpenseForm(forms.ModelForm):
         if not self.instance.pk:
             self.initial['start_date'] = timezone.now().date()
 
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount < 0:
+            raise forms.ValidationError('Amount cannot be negative.')
+        return amount
+
 
 class SavingsGoalForm(forms.ModelForm):
     class Meta:
@@ -112,6 +136,12 @@ class SavingsGoalForm(forms.ModelForm):
         widgets = {
             'deadline': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def clean_target_amount(self):
+        target = self.cleaned_data.get('target_amount')
+        if target is not None and target <= 0:
+            raise forms.ValidationError('Target amount must be greater than zero.')
+        return target
 
 
 class SavingsContributionForm(forms.ModelForm):
@@ -125,6 +155,12 @@ class SavingsContributionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.initial['date'] = timezone.now().date()
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError('Contribution amount must be greater than zero.')
+        return amount
 
 
 class IncomeForm(forms.ModelForm):
@@ -140,6 +176,12 @@ class IncomeForm(forms.ModelForm):
         if not self.instance.pk:
             self.initial['date'] = timezone.now().date()
 
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount < 0:
+            raise forms.ValidationError('Amount cannot be negative.')
+        return amount
+
 
 class BillForm(forms.ModelForm):
     class Meta:
@@ -154,6 +196,18 @@ class BillForm(forms.ModelForm):
         if not self.instance.pk:
             self.initial['due_date'] = timezone.now().date()
         self.fields['recurring_interval'].required = False
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount < 0:
+            raise forms.ValidationError('Amount cannot be negative.')
+        return amount
+
+    def clean_reminder_days_before(self):
+        days = self.cleaned_data.get('reminder_days_before')
+        if days is not None and days < 0:
+            raise forms.ValidationError('Reminder days cannot be negative.')
+        return days
 
 
 class UserProfileForm(forms.ModelForm):

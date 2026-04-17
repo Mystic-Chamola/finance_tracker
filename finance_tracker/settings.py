@@ -6,6 +6,7 @@ from pathlib import Path
 from decouple import config, Csv
 import dj_database_url
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings from environment
@@ -125,3 +126,10 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
 }
+# At the bottom of settings.py
+import sys
+
+if 'test' in sys.argv or 'pytest' in sys.modules:
+    DEBUG = True
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m]
