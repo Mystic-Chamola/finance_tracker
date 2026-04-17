@@ -279,6 +279,7 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
+    align-items: stretch;
 }
 
 .card {
@@ -290,7 +291,8 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     transition: var(--transition);
     border: 1px solid var(--border);
     min-width: 0;
-    overflow: hidden;
+    overflow: visible !important;
+    min-height: auto;
     word-break: break-word;
     overflow-wrap: break-word;
 }
@@ -307,19 +309,22 @@ body.dark-mode .theme-toggle .light-icon { display: none; }
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
 }
 
 .card .amount {
     font-size: clamp(1.5rem, 5vw, 2.5rem);
     font-weight: 700;
     color: var(--text-primary);
-    line-height: 1.2;
+    line-height: 1.3;
     word-break: break-word;
     overflow-wrap: break-word;
     max-width: 100%;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
 }
 
 .card.over-budget .amount {
@@ -1448,11 +1453,14 @@ footer {
         text-align: center;
         transition: 0.3s ease;
         box-shadow: var(--card-shadow);
-        padding: 2rem 0;
-        gap: 1.5rem;
+        padding: 1.5rem 0 2rem;
+        gap: 1.2rem;
         z-index: 5;
         border-bottom-left-radius: var(--border-radius);
         border-bottom-right-radius: var(--border-radius);
+        max-height: calc(100vh - 65px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .nav-menu.active {
@@ -1460,7 +1468,11 @@ footer {
     }
 
     .nav-menu li {
-        margin: 0.5rem 0;
+        margin: 0.25rem 0;
+    }
+
+    .nav-menu li:last-child {
+        margin-bottom: 0.5rem;
     }
 
     .dashboard-header {
