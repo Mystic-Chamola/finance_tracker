@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_filters',
     'axes',
-    #'corsheaders',                     # optional, if needed
 
     # Local
     'tracker',
@@ -41,16 +40,16 @@ SITE_ID = 1
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'tracker.middleware.PerformanceMonitoringMiddleware',   # custom
+    'tracker.middleware.PerformanceMonitoringMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'axes.middleware.AxesMiddleware',                       # brute‑force protection
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'csp.middleware.CSPMiddleware',                         # Content Security Policy
-    'tracker.middleware.ExceptionLoggingMiddleware',        # custom error logging
+    'csp.middleware.CSPMiddleware',
+    'tracker.middleware.ExceptionLoggingMiddleware',
 ]
 
 # ===== URL & TEMPLATES =====
@@ -77,18 +76,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'finance_tracker.wsgi.application'
 
 # ===== DATABASE =====
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-# Use PostgreSQL if DATABASE_URL is provided (e.g., on Render)
 import dj_database_url
-db_from_env = dj_database_url.config(conn_max_age=600)
-if db_from_env:
-    DATABASES['default'].update(db_from_env)
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600
+    )
+}
 
 # ===== PASSWORD VALIDATION =====
 AUTH_PASSWORD_VALIDATORS = [
@@ -158,7 +152,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-# ===== CONTENT SECURITY POLICY (CSP) =====
+# ===== CONTENT SECURITY POLICY =====
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_STYLE_SRC = ("'self'", "https://fonts.googleapis.com", "'unsafe-inline'")
 CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
@@ -169,10 +163,19 @@ CSP_FRAME_ANCESTORS = ("'none'",)
 
 # ===== AXES (Brute‑Force Protection) =====
 AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = 1   # hours
+AXES_COOLOFF_TIME = 1
 AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
 AXES_RESET_ON_SUCCESS = True
 AXES_ENABLE_ADMIN = True
+
+# ===== EMAIL CONFIGURATION =====
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@financetracker.com')
 
 # ===== LOGGING =====
 LOGS_DIR = BASE_DIR / 'logs'
@@ -268,17 +271,6 @@ LOGGING = {
 handler404 = 'tracker.views.custom_404'
 handler500 = 'tracker.views.custom_500'
 handler403 = 'tracker.views.custom_403'
-
-# ===== SENTRY (Optional) =====
-# import sentry_sdk
-# from sentry_sdk.integrations.django import DjangoIntegration
-# if not DEBUG and (dsn := os.environ.get('SENTRY_DSN')):
-#     sentry_sdk.init(
-#         dsn=dsn,
-#         integrations=[DjangoIntegration()],
-#         traces_sample_rate=1.0,
-#         send_default_pii=True,
-#     )
 
 # ===== TEST‑SPECIFIC SETTINGS =====
 if 'test' in sys.argv or 'pytest' in sys.modules:

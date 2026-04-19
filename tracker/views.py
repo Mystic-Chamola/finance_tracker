@@ -11,13 +11,19 @@ from django.core.paginator import Paginator
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
+from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
 
 from .models import (
-    Expense, Income, Bill, RecurringExpense, SavingsGoal, Notification, UserProfile, Currency
+    Expense, Income, Bill, RecurringExpense, SavingsGoal, Notification, UserProfile,
+    EmailVerificationToken, Budget, CategoryBudget
 )
 from .forms import (
     RegisterForm, ExpenseForm, RecurringExpenseForm, SavingsGoalForm,
-    SavingsContributionForm, IncomeForm, BillForm
+    SavingsContributionForm, IncomeForm, BillForm, BudgetForm, CategoryBudgetForm,
+    UserUpdateForm, UserProfileForm, CustomPasswordChangeForm, DeleteAccountForm
 )
 from .services import (
     DashboardService, ExpenseService, IncomeService, BillService,
@@ -96,21 +102,57 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             try:
-                user = form.save()
-                # Additional setup could be moved to a service if desired
+                with transaction.atomic():
+                    user = form.save(commit=False)
+                    user.is_active = False  # Require email verification
+                    user.save()
+                    Budget.objects.create(user=user, monthly_limit=0)
+                    UserProfile.objects.create(user=user, preferred_currency='USD')
+
+                    # Create verification token
+                    token_obj = EmailVerificationToken.objects.create(user=user)
+
+                    # Send verification email
+                    verification_url = request.build_absolute_uri(
+                        reverse('verify_email', args=[token_obj.token])
+                    )
+                    send_mail(
+                        'Verify your Finance Tracker account',
+                        f'Click the link to verify your email: {verification_url}',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [user.email],
+                        fail_silently=False,
+                    )
+
                 log_audit(user, 'USER_REGISTERED', f'Email: {user.email}')
-                messages.success(request, 'Registration successful. You can now log in.')
+                messages.success(request, 'Registration successful. Please check your email to verify your account.')
                 return redirect('login')
             except Exception as e:
-                logger.exception("Unexpected error during registration")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+                logger.exception("Error during registration")
+                messages.error(request, 'An error occurred. Please try again.')
     else:
         form = RegisterForm()
     return render(request, 'registration/register.html', {'form': form})
 
 
+def verify_email(request, token):
+    try:
+        token_obj = EmailVerificationToken.objects.get(token=token)
+        if token_obj.is_valid():
+            user = token_obj.user
+            user.is_active = True
+            user.save()
+            token_obj.delete()
+            messages.success(request, 'Email verified successfully. You can now log in.')
+        else:
+            messages.error(request, 'Verification link has expired. Please register again.')
+    except EmailVerificationToken.DoesNotExist:
+        messages.error(request, 'Invalid verification link.')
+    return redirect('login')
+
+
 # ============================================================
-# DASHBOARD (Thin Orchestrator)
+# DASHBOARD
 # ============================================================
 
 @login_required
@@ -171,7 +213,7 @@ def dashboard(request):
         active_goals = service.get_active_goals()
         upcoming_bills = service.get_upcoming_bills()
 
-        # Trigger notifications (utils still called directly – could be moved to NotificationService)
+        # Trigger notifications
         from .utils import check_budget_alerts, check_category_budget_alerts, check_bill_reminders
         check_budget_alerts(user, total_spent, budget_limit)
         check_category_budget_alerts(user, category_spending, category_budgets)
@@ -215,7 +257,7 @@ def dashboard(request):
 
 
 # ============================================================
-# EXPENSES (Using ExpenseService)
+# EXPENSES
 # ============================================================
 
 @login_required
@@ -270,7 +312,7 @@ def delete_expense(request, pk):
 
 
 # ============================================================
-# BUDGETS (Using BudgetService)
+# BUDGETS
 # ============================================================
 
 @login_required
@@ -288,7 +330,6 @@ def set_budget(request):
                     messages.error(request, msg)
     else:
         budget_obj = BudgetService(request.user).get_global_budget()
-        from .forms import BudgetForm
         form = BudgetForm(instance=budget_obj)
     return render(request, 'tracker/set_budget.html', {'form': form})
 
@@ -315,7 +356,7 @@ def manage_category_budgets(request):
 
 
 # ============================================================
-# EXPORT CSV (Using ReportService)
+# EXPORT CSV
 # ============================================================
 
 @login_required
@@ -334,7 +375,7 @@ def export_csv(request):
 
 
 # ============================================================
-# RECURRING EXPENSES (Using RecurringService)
+# RECURRING EXPENSES
 # ============================================================
 
 @login_required
@@ -400,7 +441,7 @@ def recurring_toggle(request, pk):
 
 
 # ============================================================
-# SAVINGS GOALS (Using GoalService)
+# SAVINGS GOALS
 # ============================================================
 
 @login_required
@@ -484,7 +525,7 @@ def goal_contribute(request, pk):
 
 
 # ============================================================
-# INCOME (Using IncomeService)
+# INCOME
 # ============================================================
 
 @login_required
@@ -539,7 +580,7 @@ def income_delete(request, pk):
 
 
 # ============================================================
-# BILLS (Using BillService)
+# BILLS
 # ============================================================
 
 @login_required
@@ -608,7 +649,7 @@ def bill_mark_paid(request, pk):
 
 
 # ============================================================
-# NOTIFICATIONS (Using NotificationService)
+# NOTIFICATIONS
 # ============================================================
 
 @login_required
@@ -627,7 +668,7 @@ def mark_all_read(request):
 
 
 # ============================================================
-# REPORTS (Using ReportService)
+# REPORTS
 # ============================================================
 
 @login_required
@@ -647,7 +688,7 @@ def generate_report(request):
 
 
 # ============================================================
-# PROFILE & SETTINGS (Using ProfileService)
+# PROFILE & SETTINGS
 # ============================================================
 
 @login_required
@@ -671,7 +712,6 @@ def profile_edit(request):
                     msg = error if field == '__all__' else f"{field}: {error}"
                     messages.error(request, msg)
     else:
-        from .forms import UserUpdateForm, UserProfileForm
         user_form = UserUpdateForm(instance=request.user)
         profile_form = UserProfileForm(instance=service.get_profile())
     return render(request, 'tracker/profile_edit.html', {
@@ -686,6 +726,8 @@ def change_password(request):
     if request.method == 'POST':
         success, errors = service.change_password(request.POST)
         if success:
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, request.user)
             messages.success(request, 'Your password has been changed successfully.')
             return redirect('profile')
         else:
@@ -694,7 +736,6 @@ def change_password(request):
                     msg = error if field == '__all__' else f"{field}: {error}"
                     messages.error(request, msg)
     else:
-        from .forms import CustomPasswordChangeForm
         form = CustomPasswordChangeForm(user=request.user)
     return render(request, 'tracker/change_password.html', {'form': form})
 
@@ -713,13 +754,12 @@ def delete_account(request):
                     msg = error if field == '__all__' else f"{field}: {error}"
                     messages.error(request, msg)
     else:
-        from .forms import DeleteAccountForm
         form = DeleteAccountForm()
     return render(request, 'tracker/delete_account.html', {'form': form})
 
 
 # ============================================================
-# CURRENCY (Using CurrencyService)
+# CURRENCY
 # ============================================================
 
 @login_required

@@ -11,7 +11,7 @@ class RegisterForm(UserCreationForm):
         required=True,
         error_messages={
             'required': 'Please enter your email address.',
-            'invalid': 'Enter a valid email address (e.g., name@example.com).',
+            'invalid': 'Enter a valid email address.',
         }
     )
 
@@ -30,6 +30,12 @@ class RegisterForm(UserCreationForm):
             'Your password must contain at least 8 characters, '
             'not be entirely numeric, and not be too common.'
         )
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('This email is already registered.')
+        return email
 
     def clean_password1(self):
         password1 = self.cleaned_data.get('password1')
@@ -59,7 +65,6 @@ class RegisterForm(UserCreationForm):
         if password1 and password2 and password1 != password2:
             self.add_error('password2', 'The two password fields must match.')
         return cleaned_data
-
 
 class ExpenseForm(forms.ModelForm):
     class Meta:
