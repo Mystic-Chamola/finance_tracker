@@ -99,6 +99,9 @@
     </div>
 </div>
 
+{# Live region for chart updates #}
+<div id="chart-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
 {# --- EXPENSE LIST WITH CATEGORY BUDGETS --- #}
 <section class="expense-section glass" aria-labelledby="transactions-heading">
     <div class="section-header">
@@ -212,5 +215,12 @@
             }
         }
     });
+
+    // Announce chart updates to screen readers
+    const announcer = document.getElementById('chart-announcer');
+    if (announcer) {
+        const month = document.querySelector('.current-month')?.textContent || 'current month';
+        announcer.textContent = `Spending trend and category breakdown updated for ${month}.`;
+    }
 </script>
 {% endblock %}

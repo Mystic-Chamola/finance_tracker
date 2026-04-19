@@ -49,8 +49,6 @@
             'user_id': '{{ user.id|default:"anonymous" }}'
         });
     </script>
-    <!-- Alternative: Plausible Analytics -->
-    <!-- <script defer data-domain="yourdomain.com" src="https://plausible.io/js/script.js"></script> -->
 </head>
 <body>
     <!-- Skip to main content link -->
@@ -187,7 +185,6 @@
                 themeText.textContent = isDark ? 'Light' : 'Dark';
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
 
-                // Announce to screen readers
                 const message = isDark ? 'Dark mode enabled' : 'Light mode enabled';
                 const announcer = document.createElement('div');
                 announcer.setAttribute('aria-live', 'polite');
@@ -210,32 +207,111 @@
             });
         })();
 
-        // Hamburger menu
-        const hamburger = document.getElementById('hamburger');
-        const navMenu = document.getElementById('nav-menu');
-        if (hamburger) {
-            hamburger.addEventListener('click', () => {
-                const expanded = hamburger.getAttribute('aria-expanded') === 'true' ? 'false' : 'true';
-                hamburger.setAttribute('aria-expanded', expanded);
-                navMenu.classList.toggle('active');
-            });
-        }
+        // ----- Keyboard & Focus Management -----
+        (function() {
+            const focusableSelectors = 'a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-        // Notification dropdown
-        const bell = document.getElementById('notification-bell');
-        const dropdown = document.getElementById('notification-dropdown');
-        if (bell) {
-            bell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const expanded = bell.getAttribute('aria-expanded') === 'true' ? 'false' : 'true';
-                bell.setAttribute('aria-expanded', expanded);
-                dropdown.classList.toggle('show');
-            });
-            document.addEventListener('click', () => {
-                bell.setAttribute('aria-expanded', 'false');
-                dropdown.classList.remove('show');
-            });
-        }
+            function trapFocus(element, event) {
+                const focusable = Array.from(element.querySelectorAll(focusableSelectors));
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.key === 'Tab') {
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
+
+            // Mobile menu
+            const hamburger = document.getElementById('hamburger');
+            const navMenu = document.getElementById('nav-menu');
+            if (hamburger && navMenu) {
+                hamburger.addEventListener('click', () => {
+                    const expanded = hamburger.getAttribute('aria-expanded') === 'true' ? 'false' : 'true';
+                    hamburger.setAttribute('aria-expanded', expanded);
+                    navMenu.classList.toggle('active');
+                    document.body.classList.toggle('menu-open');
+                    if (expanded === 'true') {
+                        const firstFocusable = navMenu.querySelector(focusableSelectors);
+                        if (firstFocusable) firstFocusable.focus();
+                    } else {
+                        hamburger.focus();
+                    }
+                });
+
+                navMenu.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        navMenu.classList.remove('active');
+                        document.body.classList.remove('menu-open');
+                        hamburger.setAttribute('aria-expanded', 'false');
+                        hamburger.focus();
+                    } else if (e.key === 'Tab') {
+                        trapFocus(navMenu, e);
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!navMenu.contains(e.target) && !hamburger.contains(e.target) && navMenu.classList.contains('active')) {
+                        navMenu.classList.remove('active');
+                        document.body.classList.remove('menu-open');
+                        hamburger.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            // Notification dropdown
+            const bell = document.getElementById('notification-bell');
+            const dropdown = document.getElementById('notification-dropdown');
+            if (bell && dropdown) {
+                bell.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const expanded = bell.getAttribute('aria-expanded') === 'true' ? 'false' : 'true';
+                    bell.setAttribute('aria-expanded', expanded);
+                    dropdown.classList.toggle('show');
+                    if (expanded === 'true') {
+                        const firstFocusable = dropdown.querySelector(focusableSelectors);
+                        if (firstFocusable) firstFocusable.focus();
+                    } else {
+                        bell.focus();
+                    }
+                });
+
+                dropdown.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        dropdown.classList.remove('show');
+                        bell.setAttribute('aria-expanded', 'false');
+                        bell.focus();
+                    } else if (e.key === 'Tab') {
+                        trapFocus(dropdown, e);
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!dropdown.contains(e.target) && !bell.contains(e.target) && dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                        bell.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            // Skip link enhancement
+            const skipLink = document.querySelector('.skip-link');
+            if (skipLink) {
+                skipLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const main = document.getElementById('main-content');
+                    if (main) {
+                        main.setAttribute('tabindex', '-1');
+                        main.focus();
+                    }
+                });
+            }
+        })();
 
         // Event tracking helper
         function trackEvent(action, category, label, value) {
@@ -246,10 +322,8 @@
                     'value': value
                 });
             }
-            // Add Plausible or other providers here
         }
 
-        // Auto‑track clicks on elements with data-track attribute
         document.addEventListener('click', function(e) {
             const target = e.target.closest('[data-track]');
             if (target) {
