@@ -2,30 +2,29 @@ import csv
 import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import update_session_auth_hash, logout
+from django.contrib.auth import logout
 from django.contrib import messages
-from django.db.models import Sum
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
-from django.db import transaction, DatabaseError
 
 from .models import (
-    Expense, Budget, RecurringExpense, SavingsGoal, SavingsContribution,
-    Income, CategoryBudget, Bill, Notification, UserProfile, Currency
+    Expense, Income, Bill, RecurringExpense, SavingsGoal, Notification, UserProfile, Currency
 )
 from .forms import (
-    RegisterForm, ExpenseForm, BudgetForm, RecurringExpenseForm,
-    SavingsGoalForm, SavingsContributionForm, IncomeForm, CategoryBudgetForm,
-    BillForm, UserProfileForm, UserUpdateForm, CustomPasswordChangeForm, DeleteAccountForm
+    RegisterForm, ExpenseForm, RecurringExpenseForm, SavingsGoalForm,
+    SavingsContributionForm, IncomeForm, BillForm
 )
-from .utils import create_notification, check_budget_alerts, check_category_budget_alerts, check_bill_reminders
+from .services import (
+    DashboardService, ExpenseService, IncomeService, BillService,
+    GoalService, RecurringService, BudgetService, NotificationService,
+    ReportService, ProfileService, CurrencyService
+)
 from .audit import log_audit
-from .services.dashboard import DashboardService
 
 logger = logging.getLogger(__name__)
 
@@ -97,16 +96,11 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             try:
-                with transaction.atomic():
-                    user = form.save()
-                    Budget.objects.create(user=user, monthly_limit=0)
-                    UserProfile.objects.create(user=user, preferred_currency='USD')
+                user = form.save()
+                # Additional setup could be moved to a service if desired
                 log_audit(user, 'USER_REGISTERED', f'Email: {user.email}')
                 messages.success(request, 'Registration successful. You can now log in.')
                 return redirect('login')
-            except DatabaseError as e:
-                logger.error(f"Database error during registration: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
             except Exception as e:
                 logger.exception("Unexpected error during registration")
                 messages.error(request, 'An unexpected error occurred. Please try again.')
@@ -116,7 +110,7 @@ def register(request):
 
 
 # ============================================================
-# DASHBOARD (Refactored with DashboardService)
+# DASHBOARD (Thin Orchestrator)
 # ============================================================
 
 @login_required
@@ -140,12 +134,12 @@ def dashboard(request):
         over_budget = remaining_budget < 0
 
         # Expenses with pagination
-        expenses_qs = Expense.objects.filter(
+        expense_qs = Expense.objects.filter(
             user=user, date__year=current_year, date__month=current_month
         ).select_related('recurring_source')
         if category_filter:
-            expenses_qs = expenses_qs.filter(category__iexact=category_filter)
-        paginator = Paginator(expenses_qs.order_by('-date'), 10)
+            expense_qs = expense_qs.filter(category__iexact=category_filter)
+        paginator = Paginator(expense_qs.order_by('-date'), 10)
         page_obj = paginator.get_page(request.GET.get('page'))
 
         # Category breakdown
@@ -177,7 +171,8 @@ def dashboard(request):
         active_goals = service.get_active_goals()
         upcoming_bills = service.get_upcoming_bills()
 
-        # Trigger notifications
+        # Trigger notifications (utils still called directly – could be moved to NotificationService)
+        from .utils import check_budget_alerts, check_category_budget_alerts, check_bill_reminders
         check_budget_alerts(user, total_spent, budget_limit)
         check_category_budget_alerts(user, category_spending, category_budgets)
         check_bill_reminders(user)
@@ -220,28 +215,22 @@ def dashboard(request):
 
 
 # ============================================================
-# EXPENSES
+# EXPENSES (Using ExpenseService)
 # ============================================================
 
 @login_required
 def add_expense(request):
     if request.method == 'POST':
-        form = ExpenseForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    expense = form.save(commit=False)
-                    expense.user = request.user
-                    expense.save()
-                log_audit(request.user, 'EXPENSE_ADDED', f'Title: {expense.title}, Amount: {expense.amount}')
-                messages.success(request, 'Expense added successfully.')
-                return redirect('dashboard')
-            except DatabaseError as e:
-                logger.error(f"Database error adding expense: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error adding expense")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+        service = ExpenseService(request.user)
+        expense, errors = service.create(request.POST)
+        if expense:
+            messages.success(request, 'Expense added successfully.')
+            return redirect('dashboard')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
         form = ExpenseForm()
     return render(request, 'tracker/add_expense.html', {'form': form})
@@ -249,169 +238,118 @@ def add_expense(request):
 
 @login_required
 def edit_expense(request, pk):
-    expense = get_object_or_404(Expense, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = ExpenseForm(request.POST, instance=expense)
-        if form.is_valid():
-            try:
-                form.save()
-                log_audit(request.user, 'EXPENSE_UPDATED', f'ID: {pk}')
-                messages.success(request, 'Expense updated successfully.')
-                return redirect('dashboard')
-            except DatabaseError as e:
-                logger.error(f"Database error updating expense {pk}: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception(f"Unexpected error updating expense {pk}")
-                messages.error(request, 'An unexpected error occurred.')
+        service = ExpenseService(request.user)
+        expense, errors = service.update(pk, request.POST)
+        if expense:
+            messages.success(request, 'Expense updated successfully.')
+            return redirect('dashboard')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        expense = get_object_or_404(Expense, pk=pk, user=request.user)
         form = ExpenseForm(instance=expense)
     return render(request, 'tracker/edit_expense.html', {'form': form})
 
 
 @login_required
 def delete_expense(request, pk):
-    expense = get_object_or_404(Expense, pk=pk, user=request.user)
     if request.method == 'POST':
-        try:
-            log_audit(request.user, 'EXPENSE_DELETED', f'ID: {pk}')
-            expense.delete()
+        service = ExpenseService(request.user)
+        success, error = service.delete(pk)
+        if success:
             messages.success(request, 'Expense deleted.')
-        except DatabaseError as e:
-            logger.error(f"Database error deleting expense {pk}: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception(f"Unexpected error deleting expense {pk}")
-            messages.error(request, 'An unexpected error occurred.')
+        else:
+            messages.error(request, error)
         return redirect('dashboard')
+    expense = get_object_or_404(Expense, pk=pk, user=request.user)
     return render(request, 'tracker/delete_expense.html', {'expense': expense})
 
 
 # ============================================================
-# BUDGETS
+# BUDGETS (Using BudgetService)
 # ============================================================
 
 @login_required
 def set_budget(request):
-    budget_obj, created = Budget.objects.get_or_create(user=request.user)
     if request.method == 'POST':
-        form = BudgetForm(request.POST, instance=budget_obj)
-        if form.is_valid():
-            try:
-                form.save()
-                log_audit(request.user, 'BUDGET_UPDATED', f'Limit: {budget_obj.monthly_limit}')
-                messages.success(request, 'Global budget updated.')
-                return redirect('dashboard')
-            except DatabaseError as e:
-                logger.error(f"Database error updating budget: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error updating budget")
-                messages.error(request, 'An unexpected error occurred.')
+        service = BudgetService(request.user)
+        success, errors = service.update_global_budget(request.POST)
+        if success:
+            messages.success(request, 'Global budget updated.')
+            return redirect('dashboard')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        budget_obj = BudgetService(request.user).get_global_budget()
+        from .forms import BudgetForm
         form = BudgetForm(instance=budget_obj)
     return render(request, 'tracker/set_budget.html', {'form': form})
 
 
 @login_required
 def manage_category_budgets(request):
-    user = request.user
-    categories = Expense.CATEGORY_CHOICES
-    for cat_code, _ in categories:
-        CategoryBudget.objects.get_or_create(user=user, category=cat_code, defaults={'monthly_limit': 0})
-    category_budgets = CategoryBudget.objects.filter(user=user).order_by('category')
+    service = BudgetService(request.user)
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                for budget in category_budgets:
-                    limit_key = f'limit_{budget.category}'
-                    if limit_key in request.POST:
-                        new_limit = float(request.POST[limit_key])
-                        budget.monthly_limit = max(0, new_limit)
-                        budget.save()
-            log_audit(request.user, 'CATEGORY_BUDGETS_UPDATED')
+        success, errors = service.update_category_budgets(request.POST)
+        if success:
             messages.success(request, 'Category budgets updated.')
             return redirect('manage_category_budgets')
-        except ValueError:
-            messages.error(request, 'Invalid budget value. Please enter a valid number.')
-        except DatabaseError as e:
-            logger.error(f"Database error updating category budgets: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception("Unexpected error updating category budgets")
-            messages.error(request, 'An unexpected error occurred.')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
+    category_budgets = service.get_category_budgets()
+    categories = Expense.CATEGORY_CHOICES
     return render(request, 'tracker/category_budgets.html', {
-        'category_budgets': category_budgets, 'categories': categories
+        'category_budgets': category_budgets,
+        'categories': categories
     })
 
 
 # ============================================================
-# EXPORT CSV
+# EXPORT CSV (Using ReportService)
 # ============================================================
 
 @login_required
 def export_csv(request):
-    try:
-        user = request.user
-        now = timezone.now()
-        year = request.GET.get('year')
-        month = request.GET.get('month')
-        category_filter = request.GET.get('category', '').strip()
-        if year and month:
-            try:
-                year, month = int(year), int(month)
-                selected_date = datetime(year, month, 1).date()
-            except (ValueError, TypeError):
-                selected_date = now.date().replace(day=1)
-        else:
-            selected_date = now.date().replace(day=1)
-
-        expenses = Expense.objects.filter(user=user, date__year=selected_date.year, date__month=selected_date.month).order_by('-date')
-        if category_filter:
-            expenses = expenses.filter(category__iexact=category_filter)
-
-        response = HttpResponse(content_type='text/csv')
-        filename = f"expenses_{selected_date.strftime('%Y_%m')}"
-        if category_filter:
-            filename += f"_{category_filter.lower()}"
-        filename += ".csv"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        writer = csv.writer(response)
-        writer.writerow(['Title', 'Amount', 'Category', 'Date'])
-        for expense in expenses:
-            writer.writerow([expense.title, str(expense.amount), expense.category, expense.date.strftime('%Y-%m-%d')])
-        log_audit(request.user, 'EXPORT_CSV', f'Period: {selected_date.strftime("%Y-%m")}')
+    service = ReportService(request.user)
+    response, error = service.generate_csv(
+        request.GET.get('year'),
+        request.GET.get('month'),
+        request.GET.get('category', '').strip()
+    )
+    if response:
         return response
-    except Exception as e:
-        logger.exception("Error generating CSV export")
-        messages.error(request, 'An error occurred while generating the export. Please try again.')
+    else:
+        messages.error(request, error)
         return redirect('dashboard')
 
 
 # ============================================================
-# RECURRING EXPENSES
+# RECURRING EXPENSES (Using RecurringService)
 # ============================================================
 
 @login_required
 def recurring_add(request):
     if request.method == 'POST':
-        form = RecurringExpenseForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    recurring = form.save(commit=False)
-                    recurring.user = request.user
-                    recurring.next_due = recurring.start_date
-                    recurring.save()
-                log_audit(request.user, 'RECURRING_ADDED', f'Title: {recurring.title}')
-                messages.success(request, 'Recurring expense added.')
-                return redirect('recurring_list')
-            except DatabaseError as e:
-                logger.error(f"Database error adding recurring expense: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error adding recurring expense")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+        service = RecurringService(request.user)
+        recurring, errors = service.create(request.POST)
+        if recurring:
+            messages.success(request, 'Recurring expense added.')
+            return redirect('recurring_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
         form = RecurringExpenseForm()
     return render(request, 'tracker/recurring_form.html', {'form': form, 'title': 'Add Recurring Expense'})
@@ -419,85 +357,65 @@ def recurring_add(request):
 
 @login_required
 def recurring_edit(request, pk):
-    recurring = get_object_or_404(RecurringExpense, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = RecurringExpenseForm(request.POST, instance=recurring)
-        if form.is_valid():
-            try:
-                form.save()
-                log_audit(request.user, 'RECURRING_UPDATED', f'ID: {pk}')
-                messages.success(request, 'Recurring expense updated.')
-                return redirect('recurring_list')
-            except DatabaseError as e:
-                logger.error(f"Database error updating recurring expense {pk}: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception(f"Unexpected error updating recurring expense {pk}")
-                messages.error(request, 'An unexpected error occurred.')
+        service = RecurringService(request.user)
+        recurring, errors = service.update(pk, request.POST)
+        if recurring:
+            messages.success(request, 'Recurring expense updated.')
+            return redirect('recurring_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        recurring = get_object_or_404(RecurringExpense, pk=pk, user=request.user)
         form = RecurringExpenseForm(instance=recurring)
     return render(request, 'tracker/recurring_form.html', {'form': form, 'title': 'Edit Recurring Expense'})
 
 
 @login_required
 def recurring_delete(request, pk):
-    recurring = get_object_or_404(RecurringExpense, pk=pk, user=request.user)
     if request.method == 'POST':
-        try:
-            log_audit(request.user, 'RECURRING_DELETED', f'ID: {pk}')
-            recurring.delete()
+        service = RecurringService(request.user)
+        success, error = service.delete(pk)
+        if success:
             messages.success(request, 'Recurring expense deleted.')
-        except DatabaseError as e:
-            logger.error(f"Database error deleting recurring expense {pk}: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception(f"Unexpected error deleting recurring expense {pk}")
-            messages.error(request, 'An unexpected error occurred.')
+        else:
+            messages.error(request, error)
         return redirect('recurring_list')
+    recurring = get_object_or_404(RecurringExpense, pk=pk, user=request.user)
     return render(request, 'tracker/recurring_confirm_delete.html', {'recurring': recurring})
 
 
 @login_required
 def recurring_toggle(request, pk):
-    recurring = get_object_or_404(RecurringExpense, pk=pk, user=request.user)
-    try:
-        recurring.is_active = not recurring.is_active
-        recurring.save()
-        status = 'activated' if recurring.is_active else 'deactivated'
-        log_audit(request.user, f'RECURRING_{status.upper()}', f'ID: {pk}')
-        messages.success(request, f'Recurring expense {status}.')
-    except DatabaseError as e:
-        logger.error(f"Database error toggling recurring expense {pk}: {e}")
-        messages.error(request, 'A database error occurred. Please try again.')
-    except Exception as e:
-        logger.exception(f"Unexpected error toggling recurring expense {pk}")
-        messages.error(request, 'An unexpected error occurred.')
+    service = RecurringService(request.user)
+    success, status_or_error = service.toggle(pk)
+    if success:
+        messages.success(request, f'Recurring expense {status_or_error}.')
+    else:
+        messages.error(request, status_or_error)
     return redirect('recurring_list')
 
 
 # ============================================================
-# SAVINGS GOALS
+# SAVINGS GOALS (Using GoalService)
 # ============================================================
 
 @login_required
 def goal_add(request):
     if request.method == 'POST':
-        form = SavingsGoalForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    goal = form.save(commit=False)
-                    goal.user = request.user
-                    goal.save()
-                log_audit(request.user, 'GOAL_ADDED', f'Title: {goal.title}')
-                messages.success(request, 'Savings goal created.')
-                return redirect('goal_list')
-            except DatabaseError as e:
-                logger.error(f"Database error adding savings goal: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error adding savings goal")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+        service = GoalService(request.user)
+        goal, errors = service.create(request.POST)
+        if goal:
+            messages.success(request, 'Savings goal created.')
+            return redirect('goal_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
         form = SavingsGoalForm()
     return render(request, 'tracker/goal_form.html', {'form': form, 'title': 'Add Savings Goal'})
@@ -505,41 +423,34 @@ def goal_add(request):
 
 @login_required
 def goal_edit(request, pk):
-    goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = SavingsGoalForm(request.POST, instance=goal)
-        if form.is_valid():
-            try:
-                form.save()
-                log_audit(request.user, 'GOAL_UPDATED', f'ID: {pk}')
-                messages.success(request, 'Goal updated.')
-                return redirect('goal_list')
-            except DatabaseError as e:
-                logger.error(f"Database error updating savings goal {pk}: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception(f"Unexpected error updating savings goal {pk}")
-                messages.error(request, 'An unexpected error occurred.')
+        service = GoalService(request.user)
+        goal, errors = service.update(pk, request.POST)
+        if goal:
+            messages.success(request, 'Goal updated.')
+            return redirect('goal_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
         form = SavingsGoalForm(instance=goal)
     return render(request, 'tracker/goal_form.html', {'form': form, 'title': 'Edit Savings Goal'})
 
 
 @login_required
 def goal_delete(request, pk):
-    goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
     if request.method == 'POST':
-        try:
-            log_audit(request.user, 'GOAL_DELETED', f'ID: {pk}')
-            goal.delete()
+        service = GoalService(request.user)
+        success, error = service.delete(pk)
+        if success:
             messages.success(request, 'Goal deleted.')
-        except DatabaseError as e:
-            logger.error(f"Database error deleting savings goal {pk}: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception(f"Unexpected error deleting savings goal {pk}")
-            messages.error(request, 'An unexpected error occurred.')
+        else:
+            messages.error(request, error)
         return redirect('goal_list')
+    goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
     return render(request, 'tracker/goal_confirm_delete.html', {'goal': goal})
 
 
@@ -552,63 +463,43 @@ def goal_detail(request, pk):
 
 @login_required
 def goal_contribute(request, pk):
-    goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = SavingsContributionForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    contribution = form.save(commit=False)
-                    contribution.goal = goal
-                    contribution.save()
-                    goal.current_amount += contribution.amount
-                    if goal.current_amount >= goal.target_amount:
-                        goal.is_completed = True
-                        create_notification(
-                            request.user,
-                            f"Goal Achieved: {goal.title}",
-                            f"Congratulations! You've reached your savings goal of ${goal.target_amount:.2f}.",
-                            'goal_achieved',
-                            f'/goals/{goal.pk}/'
-                        )
-                    goal.save()
-                log_audit(request.user, 'GOAL_CONTRIBUTION', f'Goal: {goal.title}, Amount: {contribution.amount}')
-                messages.success(request, f'Added ${contribution.amount} to "{goal.title}".')
-                return redirect('goal_detail', pk=goal.pk)
-            except DatabaseError as e:
-                logger.error(f"Database error adding contribution: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error adding contribution")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+        service = GoalService(request.user)
+        success, errors = service.contribute(pk, request.POST)
+        if success:
+            messages.success(request, 'Contribution added.')
+            return redirect('goal_detail', pk=pk)
+        else:
+            if isinstance(errors, dict):
+                for field, error_list in errors.items():
+                    for error in error_list:
+                        msg = error if field == '__all__' else f"{field}: {error}"
+                        messages.error(request, msg)
+            else:
+                messages.error(request, errors)
     else:
         form = SavingsContributionForm()
+    goal = get_object_or_404(SavingsGoal, pk=pk, user=request.user)
     return render(request, 'tracker/goal_contribute.html', {'form': form, 'goal': goal})
 
 
 # ============================================================
-# INCOME
+# INCOME (Using IncomeService)
 # ============================================================
 
 @login_required
 def income_add(request):
     if request.method == 'POST':
-        form = IncomeForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    income = form.save(commit=False)
-                    income.user = request.user
-                    income.save()
-                log_audit(request.user, 'INCOME_ADDED', f'Title: {income.title}, Amount: {income.amount}')
-                messages.success(request, 'Income added successfully.')
-                return redirect('income_list')
-            except DatabaseError as e:
-                logger.error(f"Database error adding income: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error adding income")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+        service = IncomeService(request.user)
+        income, errors = service.create(request.POST)
+        if income:
+            messages.success(request, 'Income added successfully.')
+            return redirect('income_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
         form = IncomeForm()
     return render(request, 'tracker/income_form.html', {'form': form, 'title': 'Add Income'})
@@ -616,67 +507,54 @@ def income_add(request):
 
 @login_required
 def income_edit(request, pk):
-    income = get_object_or_404(Income, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = IncomeForm(request.POST, instance=income)
-        if form.is_valid():
-            try:
-                form.save()
-                log_audit(request.user, 'INCOME_UPDATED', f'ID: {pk}')
-                messages.success(request, 'Income updated.')
-                return redirect('income_list')
-            except DatabaseError as e:
-                logger.error(f"Database error updating income {pk}: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception(f"Unexpected error updating income {pk}")
-                messages.error(request, 'An unexpected error occurred.')
+        service = IncomeService(request.user)
+        income, errors = service.update(pk, request.POST)
+        if income:
+            messages.success(request, 'Income updated.')
+            return redirect('income_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        income = get_object_or_404(Income, pk=pk, user=request.user)
         form = IncomeForm(instance=income)
     return render(request, 'tracker/income_form.html', {'form': form, 'title': 'Edit Income'})
 
 
 @login_required
 def income_delete(request, pk):
-    income = get_object_or_404(Income, pk=pk, user=request.user)
     if request.method == 'POST':
-        try:
-            log_audit(request.user, 'INCOME_DELETED', f'ID: {pk}')
-            income.delete()
+        service = IncomeService(request.user)
+        success, error = service.delete(pk)
+        if success:
             messages.success(request, 'Income deleted.')
-        except DatabaseError as e:
-            logger.error(f"Database error deleting income {pk}: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception(f"Unexpected error deleting income {pk}")
-            messages.error(request, 'An unexpected error occurred.')
+        else:
+            messages.error(request, error)
         return redirect('income_list')
+    income = get_object_or_404(Income, pk=pk, user=request.user)
     return render(request, 'tracker/income_confirm_delete.html', {'income': income})
 
 
 # ============================================================
-# BILLS
+# BILLS (Using BillService)
 # ============================================================
 
 @login_required
 def bill_add(request):
     if request.method == 'POST':
-        form = BillForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    bill = form.save(commit=False)
-                    bill.user = request.user
-                    bill.save()
-                log_audit(request.user, 'BILL_ADDED', f'Title: {bill.title}')
-                messages.success(request, 'Bill added successfully.')
-                return redirect('bill_list')
-            except DatabaseError as e:
-                logger.error(f"Database error adding bill: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error adding bill")
-                messages.error(request, 'An unexpected error occurred. Please try again.')
+        service = BillService(request.user)
+        bill, errors = service.create(request.POST)
+        if bill:
+            messages.success(request, 'Bill added successfully.')
+            return redirect('bill_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
         form = BillForm()
     return render(request, 'tracker/bill_form.html', {'form': form, 'title': 'Add Bill'})
@@ -684,253 +562,164 @@ def bill_add(request):
 
 @login_required
 def bill_edit(request, pk):
-    bill = get_object_or_404(Bill, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = BillForm(request.POST, instance=bill)
-        if form.is_valid():
-            try:
-                form.save()
-                log_audit(request.user, 'BILL_UPDATED', f'ID: {pk}')
-                messages.success(request, 'Bill updated.')
-                return redirect('bill_list')
-            except DatabaseError as e:
-                logger.error(f"Database error updating bill {pk}: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception(f"Unexpected error updating bill {pk}")
-                messages.error(request, 'An unexpected error occurred.')
+        service = BillService(request.user)
+        bill, errors = service.update(pk, request.POST)
+        if bill:
+            messages.success(request, 'Bill updated.')
+            return redirect('bill_list')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        bill = get_object_or_404(Bill, pk=pk, user=request.user)
         form = BillForm(instance=bill)
     return render(request, 'tracker/bill_form.html', {'form': form, 'title': 'Edit Bill'})
 
 
 @login_required
 def bill_delete(request, pk):
-    bill = get_object_or_404(Bill, pk=pk, user=request.user)
     if request.method == 'POST':
-        try:
-            log_audit(request.user, 'BILL_DELETED', f'ID: {pk}')
-            bill.delete()
+        service = BillService(request.user)
+        success, error = service.delete(pk)
+        if success:
             messages.success(request, 'Bill deleted.')
-        except DatabaseError as e:
-            logger.error(f"Database error deleting bill {pk}: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception(f"Unexpected error deleting bill {pk}")
-            messages.error(request, 'An unexpected error occurred.')
+        else:
+            messages.error(request, error)
         return redirect('bill_list')
+    bill = get_object_or_404(Bill, pk=pk, user=request.user)
     return render(request, 'tracker/bill_confirm_delete.html', {'bill': bill})
 
 
 @login_required
 def bill_mark_paid(request, pk):
-    bill = get_object_or_404(Bill, pk=pk, user=request.user)
     if request.method == 'POST':
-        try:
-            bill.mark_paid_and_create_next()
-            log_audit(request.user, 'BILL_MARKED_PAID', f'Title: {bill.title}')
-            messages.success(request, f'Bill "{bill.title}" marked as paid.')
-        except DatabaseError as e:
-            logger.error(f"Database error marking bill paid: {e}")
-            messages.error(request, 'A database error occurred. Please try again.')
-        except Exception as e:
-            logger.exception("Unexpected error marking bill paid")
-            messages.error(request, 'An unexpected error occurred.')
+        service = BillService(request.user)
+        success, error = service.mark_paid(pk)
+        if success:
+            messages.success(request, 'Bill marked as paid.')
+        else:
+            messages.error(request, error)
         return redirect('bill_list')
+    bill = get_object_or_404(Bill, pk=pk, user=request.user)
     return render(request, 'tracker/bill_mark_paid.html', {'bill': bill})
 
 
 # ============================================================
-# NOTIFICATIONS
+# NOTIFICATIONS (Using NotificationService)
 # ============================================================
 
 @login_required
 def mark_notification_read(request, pk):
-    notification = get_object_or_404(Notification, pk=pk, user=request.user)
-    notification.is_read = True
-    notification.save()
-    return redirect(notification.link) if notification.link else redirect('notification_list')
+    service = NotificationService(request.user)
+    redirect_url = service.mark_read(pk)
+    return redirect(redirect_url)
 
 
 @login_required
 def mark_all_read(request):
-    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    service = NotificationService(request.user)
+    service.mark_all_read()
     messages.success(request, 'All notifications marked as read.')
     return redirect('notification_list')
 
 
 # ============================================================
-# REPORTS
+# REPORTS (Using ReportService)
 # ============================================================
 
 @login_required
 def generate_report(request):
     try:
-        user = request.user
-        now = timezone.now()
-        year = request.GET.get('year')
-        month = request.GET.get('month')
-        report_type = request.GET.get('type', 'monthly')
-
-        if report_type == 'yearly':
-            if year:
-                try:
-                    year = int(year)
-                    selected_date = datetime(year, 1, 1).date()
-                except (ValueError, TypeError):
-                    selected_date = now.date().replace(month=1, day=1)
-            else:
-                selected_date = now.date().replace(month=1, day=1)
-            start_date = selected_date
-            end_date = selected_date.replace(month=12, day=31)
-            period_label = f"Year {selected_date.year}"
-        else:
-            if year and month:
-                try:
-                    year, month = int(year), int(month)
-                    selected_date = datetime(year, month, 1).date()
-                except (ValueError, TypeError):
-                    selected_date = now.date().replace(day=1)
-            else:
-                selected_date = now.date().replace(day=1)
-            start_date = selected_date
-            end_date = selected_date + relativedelta(day=31)
-            period_label = selected_date.strftime("%B %Y")
-
-        if report_type == 'yearly':
-            income_qs = Income.objects.filter(user=user, date__year=start_date.year)
-            expenses_qs = Expense.objects.filter(user=user, date__year=start_date.year)
-        else:
-            income_qs = Income.objects.filter(user=user, date__year=start_date.year, date__month=start_date.month)
-            expenses_qs = Expense.objects.filter(user=user, date__year=start_date.year, date__month=start_date.month)
-
-        total_income = income_qs.aggregate(total=Sum('amount'))['total'] or 0
-        total_expenses = expenses_qs.aggregate(total=Sum('amount'))['total'] or 0
-        net_savings = total_income - total_expenses
-
-        category_data = expenses_qs.values('category').annotate(total=Sum('amount')).order_by('-total')
-        categories = [item['category'] for item in category_data]
-        amounts = [float(item['total']) for item in category_data]
-
-        category_budget_status = []
-        if report_type == 'monthly':
-            category_budgets = {cb.category: cb.monthly_limit for cb in CategoryBudget.objects.filter(user=user)}
-            for cat_code, cat_name in Expense.CATEGORY_CHOICES:
-                spent = float(sum(item['total'] for item in category_data if item['category'] == cat_code))
-                limit = float(category_budgets.get(cat_code, 0))
-                if limit > 0:
-                    percentage = min(100, (spent / limit) * 100)
-                    remaining = limit - spent
-                    over = spent > limit
-                else:
-                    percentage = remaining = 0
-                    over = False
-                category_budget_status.append({
-                    'category': cat_code, 'display': cat_name, 'spent': spent,
-                    'limit': limit, 'percentage': percentage, 'remaining': remaining, 'over': over,
-                })
-
-        top_expenses = expenses_qs.order_by('-amount')[:10]
-        current_year = now.year
-        years_range = range(current_year - 5, current_year + 1)
-        months = [{'value': i, 'name': datetime(2000, i, 1).strftime('%B')} for i in range(1, 13)]
-
-        context = {
-            'report_type': report_type, 'period_label': period_label,
-            'total_income': total_income, 'total_expenses': total_expenses, 'net_savings': net_savings,
-            'categories': categories, 'amounts': amounts, 'category_budget_status': category_budget_status,
-            'top_expenses': top_expenses, 'selected_year': start_date.year,
-            'selected_month': start_date.month if report_type == 'monthly' else None,
-            'years_range': years_range, 'months': months,
-        }
+        service = ReportService(request.user)
+        context = service.get_report_context(
+            request.GET.get('year'),
+            request.GET.get('month'),
+            request.GET.get('type', 'monthly')
+        )
         return render(request, 'tracker/report.html', context)
     except Exception as e:
         logger.exception("Error generating report")
-        messages.error(request, 'An error occurred while generating the report. Please try again.')
+        messages.error(request, 'An error occurred while generating the report.')
         return redirect('dashboard')
 
 
 # ============================================================
-# PROFILE & SETTINGS
+# PROFILE & SETTINGS (Using ProfileService)
 # ============================================================
 
 @login_required
 def profile(request):
-    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
-    return render(request, 'tracker/profile.html', {'profile': profile_obj})
+    service = ProfileService(request.user)
+    profile = service.get_profile()
+    return render(request, 'tracker/profile.html', {'profile': profile})
 
 
 @login_required
 def profile_edit(request):
-    user = request.user
-    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    service = ProfileService(request.user)
     if request.method == 'POST':
-        user_form = UserUpdateForm(request.POST, instance=user)
-        profile_form = UserProfileForm(request.POST, request.FILES, instance=profile_obj)
-        if user_form.is_valid() and profile_form.is_valid():
-            try:
-                with transaction.atomic():
-                    user_form.save()
-                    profile_form.save()
-                log_audit(request.user, 'PROFILE_UPDATED')
-                messages.success(request, 'Your profile has been updated successfully.')
-                return redirect('profile')
-            except DatabaseError as e:
-                logger.error(f"Database error updating profile: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error updating profile")
-                messages.error(request, 'An unexpected error occurred.')
+        success, errors = service.update_profile(request.POST, request.POST, request.FILES)
+        if success:
+            messages.success(request, 'Your profile has been updated successfully.')
+            return redirect('profile')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
-        user_form = UserUpdateForm(instance=user)
-        profile_form = UserProfileForm(instance=profile_obj)
-    return render(request, 'tracker/profile_edit.html', {'user_form': user_form, 'profile_form': profile_form})
+        from .forms import UserUpdateForm, UserProfileForm
+        user_form = UserUpdateForm(instance=request.user)
+        profile_form = UserProfileForm(instance=service.get_profile())
+    return render(request, 'tracker/profile_edit.html', {
+        'user_form': user_form,
+        'profile_form': profile_form
+    })
 
 
 @login_required
 def change_password(request):
+    service = ProfileService(request.user)
     if request.method == 'POST':
-        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
-        if form.is_valid():
-            try:
-                user = form.save()
-                update_session_auth_hash(request, user)
-                log_audit(request.user, 'PASSWORD_CHANGED')
-                messages.success(request, 'Your password has been changed successfully.')
-                return redirect('profile')
-            except Exception as e:
-                logger.exception("Error changing password")
-                messages.error(request, 'An error occurred. Please try again.')
+        success, errors = service.change_password(request.POST)
+        if success:
+            messages.success(request, 'Your password has been changed successfully.')
+            return redirect('profile')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        from .forms import CustomPasswordChangeForm
         form = CustomPasswordChangeForm(user=request.user)
     return render(request, 'tracker/change_password.html', {'form': form})
 
 
 @login_required
 def delete_account(request):
+    service = ProfileService(request.user)
     if request.method == 'POST':
-        form = DeleteAccountForm(request.POST)
-        if form.is_valid():
-            try:
-                user = request.user
-                log_audit(user, 'ACCOUNT_DELETED')
-                logout(request)
-                user.delete()
-                messages.success(request, 'Your account has been permanently deleted.')
-                return redirect('login')
-            except DatabaseError as e:
-                logger.error(f"Database error deleting account: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error deleting account")
-                messages.error(request, 'An unexpected error occurred.')
+        success, errors = service.delete_account(request.POST, request)
+        if success:
+            messages.success(request, 'Your account has been permanently deleted.')
+            return redirect('login')
+        else:
+            for field, error_list in errors.items():
+                for error in error_list:
+                    msg = error if field == '__all__' else f"{field}: {error}"
+                    messages.error(request, msg)
     else:
+        from .forms import DeleteAccountForm
         form = DeleteAccountForm()
     return render(request, 'tracker/delete_account.html', {'form': form})
 
 
 # ============================================================
-# CURRENCY
+# CURRENCY (Using CurrencyService)
 # ============================================================
 
 @login_required
@@ -938,16 +727,10 @@ def set_currency(request):
     if request.method == 'POST':
         currency_code = request.POST.get('currency')
         if currency_code:
-            try:
-                profile, _ = UserProfile.objects.get_or_create(user=request.user)
-                profile.preferred_currency = currency_code
-                profile.save()
-                log_audit(request.user, 'CURRENCY_CHANGED', f'New: {currency_code}')
+            service = CurrencyService(request.user)
+            success, error = service.set_currency(currency_code)
+            if success:
                 messages.success(request, f'Currency changed to {currency_code}.')
-            except DatabaseError as e:
-                logger.error(f"Database error changing currency: {e}")
-                messages.error(request, 'A database error occurred. Please try again.')
-            except Exception as e:
-                logger.exception("Unexpected error changing currency")
-                messages.error(request, 'An unexpected error occurred.')
+            else:
+                messages.error(request, error)
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
