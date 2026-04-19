@@ -3,6 +3,7 @@ from django.db import transaction, DatabaseError
 from ..models import Income
 from ..forms import IncomeForm
 from ..audit import log_audit
+from ..analytics import track_event
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class IncomeService:
                 income.user = self.user
                 income.save()
             log_audit(self.user, 'INCOME_ADDED', f'Title: {income.title}, Amount: {income.amount}')
+            track_event('income_created')
             return income, None
         except DatabaseError as e:
             logger.error(f"Database error creating income: {e}")

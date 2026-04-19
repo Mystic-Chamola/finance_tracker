@@ -3,6 +3,7 @@ from django.db import transaction, DatabaseError
 from ..models import Expense
 from ..forms import ExpenseForm
 from ..audit import log_audit
+from ..analytics import track_event
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class ExpenseService:
                 expense.user = self.user
                 expense.save()
             log_audit(self.user, 'EXPENSE_ADDED', f'Title: {expense.title}, Amount: {expense.amount}')
+            track_event('expense_created')
             return expense, None
         except DatabaseError as e:
             logger.error(f"Database error creating expense: {e}")

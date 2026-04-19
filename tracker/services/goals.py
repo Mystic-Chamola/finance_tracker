@@ -4,6 +4,7 @@ from ..models import SavingsGoal, SavingsContribution
 from ..forms import SavingsGoalForm, SavingsContributionForm
 from ..utils import create_notification
 from ..audit import log_audit
+from ..analytics import track_event
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class GoalService:
                 goal.user = self.user
                 goal.save()
             log_audit(self.user, 'GOAL_ADDED', f'Title: {goal.title}')
+            track_event('goal_created')
             return goal, None
         except DatabaseError as e:
             logger.error(f"Database error creating goal: {e}")

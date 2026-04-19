@@ -241,3 +241,22 @@ class EmailVerificationToken(models.Model):
 
     def __str__(self):
         return f"Verification token for {self.user.email}"
+
+
+class DailyAnalytics(models.Model):
+    date = models.DateField(unique=True, db_index=True)
+    active_users = models.IntegerField(default=0)
+    total_requests = models.IntegerField(default=0)
+    expenses_created = models.IntegerField(default=0)
+    income_created = models.IntegerField(default=0)
+    bills_created = models.IntegerField(default=0)
+    goals_created = models.IntegerField(default=0)
+    reports_generated = models.IntegerField(default=0)
+    api_calls = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = 'Daily Analytics'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Analytics for {self.date}"

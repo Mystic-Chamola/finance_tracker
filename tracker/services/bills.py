@@ -3,6 +3,7 @@ from django.db import transaction, DatabaseError
 from ..models import Bill
 from ..forms import BillForm
 from ..audit import log_audit
+from ..analytics import track_event
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class BillService:
                 bill.user = self.user
                 bill.save()
             log_audit(self.user, 'BILL_ADDED', f'Title: {bill.title}')
+            track_event('bill_created')
             return bill, None
         except DatabaseError as e:
             logger.error(f"Database error creating bill: {e}")

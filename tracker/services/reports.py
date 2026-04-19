@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from django.db.models import Sum
 from ..models import Expense, Income, CategoryBudget
 from ..audit import log_audit
+from ..analytics import track_event
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class ReportService:
             for expense in expenses:
                 writer.writerow([expense.title, str(expense.amount), expense.category, expense.date.strftime('%Y-%m-%d')])
             log_audit(self.user, 'EXPORT_CSV', f'Period: {selected_date.strftime("%Y-%m")}')
+            track_event('report_generated')
             return response, None
         except Exception as e:
             logger.exception("Error generating CSV export")
